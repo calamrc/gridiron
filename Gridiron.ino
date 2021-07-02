@@ -120,6 +120,8 @@ const char *dataUnit[] = {
   "mm"
 };
 
+const int V_MENU = 0;
+const int H_MENU = 1;
 int lineIndex[2] = {0, 0};
 
 const int INSTRUMENT_HEIGHT = 0;
@@ -286,7 +288,7 @@ void elevationSummaryScreen() {
   lcd.clear();
 
   offset = updateCursor(START, GRID_POINTS, 5);
-  updateElevationSummaryScreen(offset, lineIndex[RIGHT]);
+  updateElevationSummaryScreen(offset, lineIndex[H_MENU]);
 
   while(true) {
     int buttonsState = checkButtons();
@@ -294,15 +296,15 @@ void elevationSummaryScreen() {
     switch(buttonsState) {
       case 0b1110: // Up
         offset = updateCursor(UP, GRID_POINTS, 5);
-        updateElevationSummaryScreen(offset, lineIndex[RIGHT]);
+        updateElevationSummaryScreen(offset, lineIndex[H_MENU]);
         break;
       case 0b1101: // Down
         offset = updateCursor(DOWN, GRID_POINTS, 5);
-        updateElevationSummaryScreen(offset, lineIndex[RIGHT]);
+        updateElevationSummaryScreen(offset, lineIndex[H_MENU]);
         break;
       case 0b1011: // Ok
         offset = updateCursor(RIGHT, GRID_POINTS, 5);
-        updateElevationSummaryScreen(offset, lineIndex[RIGHT]);
+        updateElevationSummaryScreen(offset, lineIndex[H_MENU]);
         break;
       case 0b0111:
         return;
@@ -314,34 +316,37 @@ void elevationSummaryScreen() {
 
 int updateCursor(const int dir, int numberOfOptionsLeft, int numberOfOptionsRight) {
   if(dir == UP) {
-    if(lineIndex[LEFT] < numberOfOptionsLeft - 1) lineIndex[LEFT]++;
-    else lineIndex[LEFT] = 0;
+    if(lineIndex[V_MENU] < numberOfOptionsLeft - 1) lineIndex[V_MENU]++;
+    else lineIndex[V_MENU] = 0;
   }
   else if(dir == DOWN) {
-    if(lineIndex[LEFT] > 0) lineIndex[LEFT]--;
-    else lineIndex[LEFT] = numberOfOptionsLeft - 1;
+    if(lineIndex[V_MENU] > 0) lineIndex[V_MENU]--;
+    else lineIndex[V_MENU] = numberOfOptionsLeft - 1;
   }
   else if(dir == RIGHT) {
-    if(lineIndex[RIGHT] < numberOfOptionsRight - 1) lineIndex[RIGHT]++;
-    else lineIndex[RIGHT] = 0;
+    if(lineIndex[H_MENU] < numberOfOptionsRight - 1) lineIndex[H_MENU]++;
+    else lineIndex[H_MENU] = 0;
   }
   else if(dir == LEFT) {
-    if(lineIndex[RIGHT] > 0) lineIndex[RIGHT]--;
-    else lineIndex[RIGHT] = numberOfOptionsRight - 1;
+    if(lineIndex[H_MENU] > 0) lineIndex[H_MENU]--;
+    else lineIndex[H_MENU] = numberOfOptionsRight - 1;
   }
   else {
-    lineIndex[LEFT] = 0;
-    lineIndex[RIGHT] = 0;
+    lineIndex[V_MENU] = 0;
+    lineIndex[H_MENU] = 0;
   }
 
-  int indexDiff = lineIndex[LEFT] - 2;
+  int maxOptions = 3;
+  int indexDiff = lineIndex[V_MENU] - 2;
   if(indexDiff < 0) indexDiff = 0;
 
-  for(int i=0; i<3; i++) {
+  if(numberOfOptionsLeft < 3) maxOptions = numberOfOptionsLeft;
+
+  for(int i=0; i<maxOptions; i++) {
     int tempCursor;
 
     if(indexDiff > 0) tempCursor = 2;
-    else tempCursor = lineIndex[LEFT];
+    else tempCursor = lineIndex[V_MENU];
 
     if(i == tempCursor) {
       lcd.setCursor(0, i+1);
@@ -363,7 +368,7 @@ void manualControlServo() {
   double angle;
   double dutyCycle;
 
-  switch(lineIndex[LEFT]) {
+  switch(lineIndex[V_MENU]) {
     case SERVO_A_MANUAL:
       angle = manualControlServoAngles[SERVO_A_MANUAL];
       dutyCycle = map(angle, 0, 180, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_180]);
@@ -405,31 +410,31 @@ void manualControlScreen() {
 
     switch(buttonsState) {
       case 0b1110: // Up
-        if(lineIndex[RIGHT] == 0) {
+        if(lineIndex[H_MENU] == 0) {
           offset = updateCursor(UP, manualControlScreenDisplayNumber, 2);
           updateManualControlScreen(offset);
         }
         else {
-          manualControlServoAngles[lineIndex[LEFT]] += increment;
+          manualControlServoAngles[lineIndex[V_MENU]] += increment;
 
-          if(manualControlServoAngles[lineIndex[LEFT]] > 180) {
-            manualControlServoAngles[lineIndex[LEFT]] = 180;
+          if(manualControlServoAngles[lineIndex[V_MENU]] > 180) {
+            manualControlServoAngles[lineIndex[V_MENU]] = 180;
           }
 
           if(offset > 0) {
             lcd.setCursor(1, 3);
             lcd.print("                   ");
             lcd.setCursor(1, 3);
-            lcd.print(manualControlServoAngles[lineIndex[LEFT]]);
+            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
             lcd.setCursor(17, 3);
             lcd.print("deg");
           }
           else {
-            lcd.setCursor(1, lineIndex[LEFT]+1);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
             lcd.print("                   ");
-            lcd.setCursor(1, lineIndex[LEFT]+1);
-            lcd.print(manualControlServoAngles[lineIndex[LEFT]]);
-            lcd.setCursor(17, lineIndex[LEFT]+1);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
+            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
+            lcd.setCursor(17, lineIndex[V_MENU]+1);
             lcd.print("deg");
           }
 
@@ -439,31 +444,31 @@ void manualControlScreen() {
         delay(MINIMUM_DELAY);
         break;
       case 0b1101: // Down
-        if(lineIndex[RIGHT] == 0) {
+        if(lineIndex[H_MENU] == 0) {
           offset = updateCursor(DOWN, manualControlScreenDisplayNumber, 2);
           updateManualControlScreen(offset);
         }
         else {
-          manualControlServoAngles[lineIndex[LEFT]] -= increment;
+          manualControlServoAngles[lineIndex[V_MENU]] -= increment;
 
-          if(manualControlServoAngles[lineIndex[LEFT]] < 0) {
-            manualControlServoAngles[lineIndex[LEFT]] = 0;
+          if(manualControlServoAngles[lineIndex[V_MENU]] < 0) {
+            manualControlServoAngles[lineIndex[V_MENU]] = 0;
           }
 
           if(offset > 0) {
             lcd.setCursor(1, 3);
             lcd.print("                   ");
             lcd.setCursor(1, 3);
-            lcd.print(manualControlServoAngles[lineIndex[LEFT]]);
+            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
             lcd.setCursor(17, 3);
             lcd.print("deg");
           }
           else {
-            lcd.setCursor(1, lineIndex[LEFT]+1);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
             lcd.print("                   ");
-            lcd.setCursor(1, lineIndex[LEFT]+1);
-            lcd.print(manualControlServoAngles[lineIndex[LEFT]]);
-            lcd.setCursor(17, lineIndex[LEFT]+1);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
+            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
+            lcd.setCursor(17, lineIndex[V_MENU]+1);
             lcd.print("deg");
           }
 
@@ -480,27 +485,27 @@ void manualControlScreen() {
           lcd.print("                   ");
           lcd.setCursor(1, 3);
 
-          if(lineIndex[RIGHT] == 0) {
-            lcd.print(manualControlScreenDisplay[lineIndex[LEFT]]);
+          if(lineIndex[H_MENU] == 0) {
+            lcd.print(manualControlScreenDisplay[lineIndex[V_MENU]]);
           }
           else {
-            lcd.print(servoDutyCycles[lineIndex[LEFT]]);
+            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
             lcd.setCursor(17, 3);
             lcd.print("deg");
             manualControlServo();
           }
         }
         else {
-          lcd.setCursor(1, lineIndex[LEFT]+1);
+          lcd.setCursor(1, lineIndex[V_MENU]+1);
           lcd.print("                   ");
-          lcd.setCursor(1, lineIndex[LEFT]+1);
+          lcd.setCursor(1, lineIndex[V_MENU]+1);
 
-          if(lineIndex[RIGHT] == 0) {
-            lcd.print(manualControlScreenDisplay[lineIndex[LEFT]]);
+          if(lineIndex[H_MENU] == 0) {
+            lcd.print(manualControlScreenDisplay[lineIndex[V_MENU]]);
           }
           else {
-            lcd.print(manualControlServoAngles[lineIndex[LEFT]]);
-            lcd.setCursor(17, lineIndex[LEFT]+1);
+            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
+            lcd.setCursor(17, lineIndex[V_MENU]+1);
             lcd.print("deg");
             manualControlServo();
           }
@@ -510,7 +515,7 @@ void manualControlScreen() {
 
         break;
       case 0b0111: // NA
-        if(lineIndex[RIGHT] == 0) {
+        if(lineIndex[H_MENU] == 0) {
           return;
         }
         else {
@@ -526,7 +531,7 @@ void manualControlScreen() {
 }
 
 void calibrateServo() {
-  switch(lineIndex[LEFT]) {
+  switch(lineIndex[V_MENU]) {
     case SERVO_A_0:
       servoA.writeMicroseconds(servoDutyCycles[SERVO_A_0]);
       break;
@@ -566,27 +571,27 @@ void calibrateScreen() {
 
     switch(buttonsState) {
       case 0b1110: // Up
-        if(lineIndex[RIGHT] == 0) {
+        if(lineIndex[H_MENU] == 0) {
           offset = updateCursor(UP, calibrateScreenDisplayNumber, 2);
           updateCalibrateScreen(offset);
         }
         else {
-          servoDutyCycles[lineIndex[LEFT]] += increment;
+          servoDutyCycles[lineIndex[V_MENU]] += increment;
 
           if(offset > 0) {
             lcd.setCursor(1, 3);
             lcd.print("                   ");
             lcd.setCursor(1, 3);
-            lcd.print(servoDutyCycles[lineIndex[LEFT]]);
+            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
             lcd.setCursor(17, 3);
             lcd.print("ms");
           }
           else {
-            lcd.setCursor(1, lineIndex[LEFT]+1);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
             lcd.print("                   ");
-            lcd.setCursor(1, lineIndex[LEFT]+1);
-            lcd.print(servoDutyCycles[lineIndex[LEFT]]);
-            lcd.setCursor(17, lineIndex[LEFT]+1);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
+            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
+            lcd.setCursor(17, lineIndex[V_MENU]+1);
             lcd.print("ms");
           }
 
@@ -596,27 +601,27 @@ void calibrateScreen() {
         delay(MINIMUM_DELAY);
         break;
       case 0b1101: // Down
-        if(lineIndex[RIGHT] == 0) {
+        if(lineIndex[H_MENU] == 0) {
           offset = updateCursor(DOWN, calibrateScreenDisplayNumber, 2);
           updateCalibrateScreen(offset);
         }
         else {
-          servoDutyCycles[lineIndex[LEFT]] -= increment;
+          servoDutyCycles[lineIndex[V_MENU]] -= increment;
 
           if(offset > 0) {
             lcd.setCursor(1, 3);
             lcd.print("                   ");
             lcd.setCursor(1, 3);
-            lcd.print(servoDutyCycles[lineIndex[LEFT]]);
+            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
             lcd.setCursor(17, 3);
             lcd.print("ms");
           }
           else {
-            lcd.setCursor(1, lineIndex[LEFT]+1);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
             lcd.print("                   ");
-            lcd.setCursor(1, lineIndex[LEFT]+1);
-            lcd.print(servoDutyCycles[lineIndex[LEFT]]);
-            lcd.setCursor(17, lineIndex[LEFT]+1);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
+            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
+            lcd.setCursor(17, lineIndex[V_MENU]+1);
             lcd.print("ms");
           }
 
@@ -633,27 +638,27 @@ void calibrateScreen() {
           lcd.print("                   ");
           lcd.setCursor(1, 3);
 
-          if(lineIndex[RIGHT] == 0) {
-            lcd.print(calibrateScreenDisplay[lineIndex[LEFT]]);
+          if(lineIndex[H_MENU] == 0) {
+            lcd.print(calibrateScreenDisplay[lineIndex[V_MENU]]);
           }
           else {
-            lcd.print(servoDutyCycles[lineIndex[LEFT]]);
+            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
             lcd.setCursor(17, 3);
             lcd.print("ms");
             calibrateServo();
           }
         }
         else {
-          lcd.setCursor(1, lineIndex[LEFT]+1);
+          lcd.setCursor(1, lineIndex[V_MENU]+1);
           lcd.print("                   ");
-          lcd.setCursor(1, lineIndex[LEFT]+1);
+          lcd.setCursor(1, lineIndex[V_MENU]+1);
 
-          if(lineIndex[RIGHT] == 0) {
-            lcd.print(calibrateScreenDisplay[lineIndex[LEFT]]);
+          if(lineIndex[H_MENU] == 0) {
+            lcd.print(calibrateScreenDisplay[lineIndex[V_MENU]]);
           }
           else {
-            lcd.print(servoDutyCycles[lineIndex[LEFT]]);
-            lcd.setCursor(17, lineIndex[LEFT]+1);
+            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
+            lcd.setCursor(17, lineIndex[V_MENU]+1);
             lcd.print("ms");
             calibrateServo();
           }
@@ -663,7 +668,7 @@ void calibrateScreen() {
 
         break;
       case 0b0111: // NA
-        if(lineIndex[RIGHT] == 0) {
+        if(lineIndex[H_MENU] == 0) {
           return;
         }
         else {
@@ -702,56 +707,56 @@ void settingsScreen() {
 
     switch(buttonsState) {
       case 0b1110: // Up
-        if(lineIndex[RIGHT] == 0) {
+        if(lineIndex[H_MENU] == 0) {
           offset = updateCursor(UP, settingsScreenDisplayNumber, 2);
           updateSettingsScreen(offset);
         }
         else {
-          variables[lineIndex[LEFT]] += increment;
+          variables[lineIndex[V_MENU]] += increment;
 
           if(offset > 0) {
             lcd.setCursor(1, 3);
             lcd.print("                   ");
             lcd.setCursor(1, 3);
-            lcd.print(variables[lineIndex[LEFT]]);
+            lcd.print(variables[lineIndex[V_MENU]]);
             lcd.setCursor(17, 3);
-            lcd.print(variablesUnit[lineIndex[LEFT]]);
+            lcd.print(variablesUnit[lineIndex[V_MENU]]);
           }
           else {
-            lcd.setCursor(1, lineIndex[LEFT]+1);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
             lcd.print("                   ");
-            lcd.setCursor(1, lineIndex[LEFT]+1);
-            lcd.print(variables[lineIndex[LEFT]]);
-            lcd.setCursor(17, lineIndex[LEFT]+1);
-            lcd.print(variablesUnit[lineIndex[LEFT]]);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
+            lcd.print(variables[lineIndex[V_MENU]]);
+            lcd.setCursor(17, lineIndex[V_MENU]+1);
+            lcd.print(variablesUnit[lineIndex[V_MENU]]);
           }
 
         }
         delay(MINIMUM_DELAY);
         break;
       case 0b1101: // Down
-        if(lineIndex[RIGHT] == 0) {
+        if(lineIndex[H_MENU] == 0) {
           offset = updateCursor(DOWN, settingsScreenDisplayNumber, 2);
           updateSettingsScreen(offset);
         }
         else {
-          variables[lineIndex[LEFT]] -= increment;
+          variables[lineIndex[V_MENU]] -= increment;
 
           if(offset > 0) {
             lcd.setCursor(1, 3);
             lcd.print("                   ");
             lcd.setCursor(1, 3);
-            lcd.print(variables[lineIndex[LEFT]]);
+            lcd.print(variables[lineIndex[V_MENU]]);
             lcd.setCursor(17, 3);
-            lcd.print(variablesUnit[lineIndex[LEFT]]);
+            lcd.print(variablesUnit[lineIndex[V_MENU]]);
           }
           else {
-            lcd.setCursor(1, lineIndex[LEFT]+1);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
             lcd.print("                   ");
-            lcd.setCursor(1, lineIndex[LEFT]+1);
-            lcd.print(variables[lineIndex[LEFT]]);
-            lcd.setCursor(17, lineIndex[LEFT]+1);
-            lcd.print(variablesUnit[lineIndex[LEFT]]);
+            lcd.setCursor(1, lineIndex[V_MENU]+1);
+            lcd.print(variables[lineIndex[V_MENU]]);
+            lcd.setCursor(17, lineIndex[V_MENU]+1);
+            lcd.print(variablesUnit[lineIndex[V_MENU]]);
           }
 
         }
@@ -765,34 +770,34 @@ void settingsScreen() {
           lcd.print("                   ");
           lcd.setCursor(1, 3);
 
-          if(lineIndex[RIGHT] == 0) {
-            lcd.print(settingsScreenDisplay[lineIndex[LEFT]]);
+          if(lineIndex[H_MENU] == 0) {
+            lcd.print(settingsScreenDisplay[lineIndex[V_MENU]]);
           }
           else {
-            lcd.print(variables[lineIndex[LEFT]]);
+            lcd.print(variables[lineIndex[V_MENU]]);
             lcd.setCursor(17, 3);
-            lcd.print(variablesUnit[lineIndex[LEFT]]);
+            lcd.print(variablesUnit[lineIndex[V_MENU]]);
           }
 
         }
         else {
-          lcd.setCursor(1, lineIndex[LEFT]+1);
+          lcd.setCursor(1, lineIndex[V_MENU]+1);
           lcd.print("                   ");
-          lcd.setCursor(1, lineIndex[LEFT]+1);
+          lcd.setCursor(1, lineIndex[V_MENU]+1);
 
-          if(lineIndex[RIGHT] == 0) {
-            lcd.print(settingsScreenDisplay[lineIndex[LEFT]]);
+          if(lineIndex[H_MENU] == 0) {
+            lcd.print(settingsScreenDisplay[lineIndex[V_MENU]]);
           }
           else {
-            lcd.print(variables[lineIndex[LEFT]]);
-            lcd.setCursor(17, lineIndex[LEFT]+1);
-            lcd.print(variablesUnit[lineIndex[LEFT]]);
+            lcd.print(variables[lineIndex[V_MENU]]);
+            lcd.setCursor(17, lineIndex[V_MENU]+1);
+            lcd.print(variablesUnit[lineIndex[V_MENU]]);
           }
         }
 
         break;
       case 0b0111: // NA
-        if(lineIndex[RIGHT] == 0) {
+        if(lineIndex[H_MENU] == 0) {
           return;
         }
         else {
@@ -837,16 +842,16 @@ void mainScreen() {
         updateMainScreen(offset);
         break;
       case 0b1011: // Ok
-        if(lineIndex[LEFT] == START_SCREEN) {
+        if(lineIndex[V_MENU] == START_SCREEN) {
           startScreen();
         }
-        else if(lineIndex[LEFT] == SETTINGS_SCREEN) {
+        else if(lineIndex[V_MENU] == SETTINGS_SCREEN) {
           settingsScreen();
         }
-        else if(lineIndex[LEFT] == CALIBRATE_SCREEN) {
+        else if(lineIndex[V_MENU] == CALIBRATE_SCREEN) {
           calibrateScreen();
         }
-        else if(lineIndex[LEFT] == MANUAL_CONTROL_SCREEN) {
+        else if(lineIndex[V_MENU] == MANUAL_CONTROL_SCREEN) {
           manualControlScreen();
         }
 
