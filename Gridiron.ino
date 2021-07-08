@@ -1,3 +1,22 @@
+/*
+  Gridiron.ino - An automated elevation measurement device.
+  Copyright (c) 2021 Ramon Cristopher Calam.  All right reserved.
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+
 #include "Wire.h" // For I2C
 #include "LCD.h" // For LCD
 #include "LiquidCrystal_I2C.h" // Added library*
@@ -10,42 +29,42 @@
 #include <vl53l1x_class.h>
 #include <vl53l1_error_codes.h>
 
-const int BUTTON_A = 2;
-const int BUTTON_B = 3;
-const int BUTTON_C = 4;
-const int BUTTON_D = 5;
+#define BUTTON_A 2
+#define BUTTON_B 3
+#define BUTTON_C 4
+#define BUTTON_D 5
 
-const int SERVO_A = 9;
-const int SERVO_B = 10;
+#define SERVO_A 9
+#define SERVO_B 10
 
-const int START = 0;
-const int UP = 1;
-const int DOWN = 2;
-const int END = 3;
-const int LEFT = 4;
-const int RIGHT = 5;
+#define START 0
+#define UP 1
+#define DOWN 2
+#define END 3
+#define LEFT 4
+#define RIGHT 5
 
-const int MINIMUM_DELAY = 250;
+#define MINIMUM_DELAY 250
 
-const int settingsScreenDisplayNumber = 4;
+#define settingsScreenDisplayNumber 4
 const char *settingsScreenDisplay[] = {
-  "Inst. height       ",
-  "Benchmark          ",
-  "Grid dimension     ",
-  "Samples            "
+  "Inst. height  ",
+  "Benchmark     ",
+  "Grid dimension",
+  "Samples       "
 };
 
-const int SERVO_A_0 = 0;
-const int SERVO_A_180 = 1;
-const int SERVO_B_0 = 2;
-const int SERVO_B_180 = 3;
+#define SERVO_A_0 0
+#define SERVO_A_180 1
+#define SERVO_B_0 2
+#define SERVO_B_180 3
 
-const int calibrateScreenDisplayNumber = 4;
+#define calibrateScreenDisplayNumber 4
 const char *calibrateScreenDisplay[] = {
-  "Servo A - 0 deg    ",
-  "Servo A - 180 deg  ",
-  "Servo B - 0 deg    ",
-  "Servo B - 180 deg  ",
+  "Servo A - 0 deg  ",
+  "Servo A - 180 deg",
+  "Servo B - 0 deg  ",
+  "Servo B - 180 deg",
 };
 
 int servoDutyCycles[] = {
@@ -55,12 +74,12 @@ int servoDutyCycles[] = {
   2520
 };
 
-const int SERVO_A_MANUAL = 0;
-const int SERVO_B_MANUAL = 1;
-const int manualControlScreenDisplayNumber = 2;
+#define SERVO_A_MANUAL 0
+#define SERVO_B_MANUAL 1
+#define manualControlScreenDisplayNumber 2
 const char *manualControlScreenDisplay[] = {
-  "Servo A            ",
-  "Servo B            ",
+  "Servo A",
+  "Servo B",
 };
 
 double manualControlServoAngles[] = {
@@ -68,22 +87,22 @@ double manualControlServoAngles[] = {
   90,
 };
 
-const int mainScreenDisplayNumber = 4;
+#define mainScreenDisplayNumber 4
 const char *mainScreenDisplay[] = {
-  "Start              ",
-  "Settings           ",
-  "Calibrate          ",
-  "Manual Control     "
+  "Start         ",
+  "Settings      ",
+  "Calibrate     ",
+  "Manual Control"
 };
 
 
-const int START_SCREEN = 0;
-const int SETTINGS_SCREEN = 1;
-const int CALIBRATE_SCREEN = 2;
-const int MANUAL_CONTROL_SCREEN = 3;
+#define START_SCREEN 0
+#define SETTINGS_SCREEN 1
+#define CALIBRATE_SCREEN 2
+#define MANUAL_CONTROL_SCREEN 3
 
-const int GRID_POINTS = 8;
-const int COUNTDOWN_TIMER = 5;
+#define GRID_POINTS 8
+#define COUNTDOWN_TIMER 5
 
 const char *gridPointLocation[] = {
   "(0,1)",
@@ -96,20 +115,19 @@ const char *gridPointLocation[] = {
   "(1,0)"
 };
 
-
 Servo servoA;
 Servo servoB;
 
 SFEVL53L1X distanceSensor;
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7); // 0x27 is the default I2C bus address of the backpack-see article
 
-const int INFO_NUMBER = 6;
-const int ELEVATION_INFO = 0;
-const int SERVO_A_ANGLE_INFO = 1;
-const int DISTANCE_INFO = 2;
-const int X_INFO = 3;
-const int Y_INFO = 4;
-const int SERVO_B_ANGLE_INFO = 5;
+#define INFO_NUMBER 6
+#define ELEVATION_INFO 0
+#define SERVO_A_ANGLE_INFO 1
+#define DISTANCE_INFO 2
+#define X_INFO 3
+#define Y_INFO 4
+#define SERVO_B_ANGLE_INFO 5
 
 double data[INFO_NUMBER][GRID_POINTS];
 const char *dataUnit[] = {
@@ -120,14 +138,14 @@ const char *dataUnit[] = {
   "mm"
 };
 
-const int V_MENU = 0;
-const int H_MENU = 1;
+#define V_MENU 0
+#define H_MENU 1
 int lineIndex[2] = {0, 0};
 
-const int INSTRUMENT_HEIGHT = 0;
-const int BENCHMARK = 1;
-const int GRID_AREA = 2;
-const int SAMPLES = 3;
+#define INSTRUMENT_HEIGHT 0
+#define BENCHMARK 1
+#define GRID_AREA 2
+#define SAMPLES 3
 const char *variablesUnit[] = {
   "mm",
   "mm",
@@ -159,11 +177,102 @@ void loop() {
   mainScreen();
 }
 
-void clearScreen() {
-  for(int i=1; i<4; i++) {
-    lcd.setCursor(1, i);
-    lcd.print("                    ");
+void updateMainScreen(int offset) {
+  lcd.setCursor(6, 0);
+  lcd.print("GRIDIRON");
+
+  for(int i=0; i<3; i++) {
+    lcd.setCursor(1, i+1);
+    lcd.print(mainScreenDisplay[i+offset]);
   }
+}
+
+void mainScreen() {
+  int offset = 0;
+  int index = 0;
+
+  lcd.clear();
+  offset = updateCursor(START, mainScreenDisplayNumber, 1);
+  updateMainScreen(offset);
+
+  while(true) {
+    int buttonsState = checkButtons();
+
+    switch(buttonsState) {
+      case 0b1110: // Up
+        offset = updateCursor(UP, mainScreenDisplayNumber, 1);
+        updateMainScreen(offset);
+        break;
+      case 0b1101: // Down
+        offset = updateCursor(DOWN, mainScreenDisplayNumber, 1);
+        updateMainScreen(offset);
+        break;
+      case 0b1011: // Ok
+        if(index == 3) {
+          lineIndex[V_MENU] = -1;
+          index = 0;
+        }
+        if(lineIndex[V_MENU] == START_SCREEN) {
+          startScreen();
+        }
+        else if(lineIndex[V_MENU] == SETTINGS_SCREEN) {
+          settingsScreen();
+        }
+        else if(lineIndex[V_MENU] == CALIBRATE_SCREEN) {
+          calibrateScreen();
+        }
+        else if(lineIndex[V_MENU] == MANUAL_CONTROL_SCREEN) {
+          manualControlScreen();
+        }
+        else {
+          creditsScreen();
+        }
+
+        lcd.clear();
+        offset = updateCursor(START, mainScreenDisplayNumber, 1);
+        updateMainScreen(offset);
+
+        break;
+      case 0b0111: // Down
+        if(index < 3) {
+          index++;
+          if(index == 3) {
+            lcd.setCursor(19,0);
+            lcd.print("!");
+          }
+        }
+        else index = 0;
+        delay(MINIMUM_DELAY);
+
+        lcd.setCursor(19,0);
+        lcd.print(" ");
+    }
+  }
+}
+
+void creditsScreen() {
+  const char upperCase[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const int creditsInformation[4][10] = {
+    {18,  1, 13, 15, 14,  0,  0,  0,  0,  0},
+    { 3, 18,  9, 19, 20, 15, 16,  8,  5, 18},
+    {13,  0,  0,  0,  0,  0,  0,  0,  0,  0},
+    { 3,  1, 12,  1, 13,  0,  0,  0,  0,  0}
+  };
+
+  lcd.clear();
+  delay(500);
+
+  for(int i=0; i<4; i++) {
+    lcd.setCursor(0, i);
+    for(int j=0; j<10; j++) {
+      lcd.print(upperCase[creditsInformation[i][j]]);
+      delay(MINIMUM_DELAY);
+    }
+  }
+  delay(3000);
+
+  lcd.clear();
+  delay(500);
 }
 
 void welcomeScreen() {
@@ -809,59 +918,6 @@ void settingsScreen() {
       default:
         break;
     }
-  }
-}
-
-void updateMainScreen(int offset) {
-  lcd.setCursor(6, 0);
-  lcd.print("GRIDIRON");
-
-  for(int i=0; i<3; i++) {
-    lcd.setCursor(1, i+1);
-    lcd.print(mainScreenDisplay[i+offset]);
-  }
-}
-
-void mainScreen() {
-  int offset = 0;
-
-  lcd.clear();
-  offset = updateCursor(START, mainScreenDisplayNumber, 1);
-  updateMainScreen(offset);
-
-  while(true) {
-    int buttonsState = checkButtons();
-
-    switch(buttonsState) {
-      case 0b1110: // Up
-        offset = updateCursor(UP, mainScreenDisplayNumber, 1);
-        updateMainScreen(offset);
-        break;
-      case 0b1101: // Down
-        offset = updateCursor(DOWN, mainScreenDisplayNumber, 1);
-        updateMainScreen(offset);
-        break;
-      case 0b1011: // Ok
-        if(lineIndex[V_MENU] == START_SCREEN) {
-          startScreen();
-        }
-        else if(lineIndex[V_MENU] == SETTINGS_SCREEN) {
-          settingsScreen();
-        }
-        else if(lineIndex[V_MENU] == CALIBRATE_SCREEN) {
-          calibrateScreen();
-        }
-        else if(lineIndex[V_MENU] == MANUAL_CONTROL_SCREEN) {
-          manualControlScreen();
-        }
-
-        lcd.clear();
-        offset = updateCursor(START, mainScreenDisplayNumber, 1);
-        updateMainScreen(offset);
-
-        break;
-    }
-
   }
 }
 
