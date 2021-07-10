@@ -28,6 +28,10 @@
 #include <SparkFun_VL53L1X.h>
 #include <vl53l1x_class.h>
 #include <vl53l1_error_codes.h>
+#include <SPI.h>
+#include <SD.h>
+
+#define MINIMUM_DELAY 250
 
 #define BUTTON_A 2
 #define BUTTON_B 3
@@ -44,57 +48,18 @@
 #define LEFT 4
 #define RIGHT 5
 
-#define MINIMUM_DELAY 250
-
-#define settingsScreenDisplayNumber 4
-const char *settingsScreenDisplay[] = {
-  "Inst. height  ",
-  "Benchmark     ",
-  "Grid dimension",
-  "Samples       "
-};
-
 #define SERVO_A_0 0
 #define SERVO_A_180 1
 #define SERVO_B_0 2
 #define SERVO_B_180 3
 
-#define calibrateScreenDisplayNumber 4
-const char *calibrateScreenDisplay[] = {
-  "Servo A - 0 deg  ",
-  "Servo A - 180 deg",
-  "Servo B - 0 deg  ",
-  "Servo B - 180 deg",
-};
-
-int servoDutyCycles[] = {
-  490,
-  2530,
-  410,
-  2520
-};
-
 #define SERVO_A_MANUAL 0
 #define SERVO_B_MANUAL 1
-#define manualControlScreenDisplayNumber 2
-const char *manualControlScreenDisplay[] = {
-  "Servo A",
-  "Servo B",
-};
 
-double manualControlServoAngles[] = {
-  90,
-  90,
-};
-
-#define mainScreenDisplayNumber 4
-const char *mainScreenDisplay[] = {
-  "Start         ",
-  "Settings      ",
-  "Calibrate     ",
-  "Manual Control"
-};
-
+#define CALIBRATE_SCREEN_DISPLAY_NUMBER 4
+#define SETTINGS_SCREEN_DISPLAY_NUMBER 4
+#define MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER 2
+#define MAIN_SCREEN_DISPLAY_NUMBER 4
 
 #define START_SCREEN 0
 #define SETTINGS_SCREEN 1
@@ -103,6 +68,27 @@ const char *mainScreenDisplay[] = {
 
 #define GRID_POINTS 8
 #define COUNTDOWN_TIMER 5
+
+#define INFO_NUMBER 6
+#define ELEVATION_INFO 0
+#define SERVO_A_ANGLE_INFO 1
+#define DISTANCE_INFO 2
+#define X_INFO 3
+#define Y_INFO 4
+#define SERVO_B_ANGLE_INFO 5
+
+#define V_MENU 0
+#define H_MENU 1
+
+#define INSTRUMENT_HEIGHT 0
+#define BENCHMARK 1
+#define GRID_AREA 2
+#define SAMPLES 3
+
+const char *manualControlScreenDisplay[] = {
+  "Servo A",
+  "Servo B",
+};
 
 const char *gridPointLocation[] = {
   "(0,1)",
@@ -115,43 +101,8 @@ const char *gridPointLocation[] = {
   "(1,0)"
 };
 
-Servo servoA;
-Servo servoB;
-
-SFEVL53L1X distanceSensor;
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7); // 0x27 is the default I2C bus address of the backpack-see article
-
-#define INFO_NUMBER 6
-#define ELEVATION_INFO 0
-#define SERVO_A_ANGLE_INFO 1
-#define DISTANCE_INFO 2
-#define X_INFO 3
-#define Y_INFO 4
-#define SERVO_B_ANGLE_INFO 5
-
-double data[INFO_NUMBER][GRID_POINTS];
-const char *dataUnit[] = {
-  "mm",
-  "deg",
-  "mm",
-  "mm",
-  "mm"
-};
-
-#define V_MENU 0
-#define H_MENU 1
 int lineIndex[2] = {0, 0};
-
-#define INSTRUMENT_HEIGHT 0
-#define BENCHMARK 1
-#define GRID_AREA 2
-#define SAMPLES 3
-const char *variablesUnit[] = {
-  "mm",
-  "mm",
-  "mm",
-  ""
-};
+double data[INFO_NUMBER][GRID_POINTS];
 double variables[] = {
   1000,
   0,
@@ -159,16 +110,31 @@ double variables[] = {
   3
 };
 
+double manualControlServoAngles[] = {
+  90,
+  90,
+};
+
+int servoDutyCycles[] = {
+  490,
+  2530,
+  410,
+  2520
+};
+
+Servo servoA;
+Servo servoB;
+
+SFEVL53L1X distanceSensor;
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7); // 0x27 is the default I2C bus address of the backpack-see article
+
 void setup() {
   initLCD();
   initButtons();
   initServoMotors();
   initDistanceSensor();
 
-  lcd.clear();
-  lcd.setCursor(0,3);
-  lcd.print("Init... done");
-  delay(MINIMUM_DELAY);
+  printStatus("Init... done");
 
   welcomeScreen();
 }
@@ -177,7 +143,59 @@ void loop() {
   mainScreen();
 }
 
-void updateMainScreen(int offset) {
+void printStatus(char statusMessage[20]) {
+  lcd.clear();
+  lcd.setCursor(0,3);
+  lcd.print(statusMessage);
+
+  delay(MINIMUM_DELAY);
+}
+
+void initLCD() {
+  lcd.begin (20,4);
+  lcd.setBacklightPin(3, POSITIVE);
+  lcd.setBacklight(HIGH);
+
+  delay(MINIMUM_DELAY);
+}
+
+void initButtons() {
+  printStatus("Init buttons...");
+
+  pinMode(BUTTON_A, INPUT_PULLUP);
+  pinMode(BUTTON_B, INPUT_PULLUP);
+  pinMode(BUTTON_C, INPUT_PULLUP);
+  pinMode(BUTTON_D, INPUT_PULLUP);
+
+  printStatus("Init buttons... ok");
+}
+
+void initDistanceSensor() {
+  printStatus("Init sensor...");
+
+  Wire.begin();
+
+  if (distanceSensor.begin() != 0) { //Begin returns 0 on a good init
+    printStatus("Init sensor... fail");
+    while (1);
+  }
+
+  distanceSensor.setDistanceModeLong();
+
+  printStatus("Init sensor... ok");
+}
+
+void initServoMotors() {
+  printStatus("Init servo...");
+
+  servoA.attach(SERVO_A);
+  servoB.attach(SERVO_B);
+  delay(1000);
+
+  printStatus("Init servo... ok");
+}
+
+void updateMainScreen(int offset, const char *mainScreenDisplay[]) {
   lcd.setCursor(6, 0);
   lcd.print("GRIDIRON");
 
@@ -188,24 +206,30 @@ void updateMainScreen(int offset) {
 }
 
 void mainScreen() {
+  const char *mainScreenDisplay[] = {
+    "Start         ",
+    "Settings      ",
+    "Calibrate     ",
+    "Manual Control"
+  };
   int offset = 0;
   int index = 0;
 
   lcd.clear();
-  offset = updateCursor(START, mainScreenDisplayNumber, 1);
-  updateMainScreen(offset);
+  offset = updateCursor(START, MAIN_SCREEN_DISPLAY_NUMBER, 1);
+  updateMainScreen(offset, mainScreenDisplay);
 
   while(true) {
     int buttonsState = checkButtons();
 
     switch(buttonsState) {
       case 0b1110: // Up
-        offset = updateCursor(UP, mainScreenDisplayNumber, 1);
-        updateMainScreen(offset);
+        offset = updateCursor(UP, MAIN_SCREEN_DISPLAY_NUMBER, 1);
+        updateMainScreen(offset, mainScreenDisplay);
         break;
       case 0b1101: // Down
-        offset = updateCursor(DOWN, mainScreenDisplayNumber, 1);
-        updateMainScreen(offset);
+        offset = updateCursor(DOWN, MAIN_SCREEN_DISPLAY_NUMBER, 1);
+        updateMainScreen(offset, mainScreenDisplay);
         break;
       case 0b1011: // Ok
         if(index == 3) {
@@ -229,11 +253,11 @@ void mainScreen() {
         }
 
         lcd.clear();
-        offset = updateCursor(START, mainScreenDisplayNumber, 1);
-        updateMainScreen(offset);
+        offset = updateCursor(START, MAIN_SCREEN_DISPLAY_NUMBER, 1);
+        updateMainScreen(offset, mainScreenDisplay);
 
         break;
-      case 0b0111: // Down
+      case 0b0111: // Back
         if(index < 3) {
           index++;
           if(index == 3) {
@@ -348,6 +372,14 @@ void startScreen() {
 }
 
 void updateElevationSummaryScreen(int offset, int infoIndex) {
+  const char *dataUnit[] = {
+    "mm",
+    "deg",
+    "mm",
+    "mm",
+    "mm"
+  };
+
   switch(infoIndex) {
     case ELEVATION_INFO:
       lcd.setCursor(0, 0);
@@ -511,7 +543,7 @@ void manualControlScreen() {
 
   lcd.clear();
 
-  offset = updateCursor(START, manualControlScreenDisplayNumber, 2);
+  offset = updateCursor(START, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);
   updateManualControlScreen(offset);
 
   while(true) {
@@ -520,7 +552,7 @@ void manualControlScreen() {
     switch(buttonsState) {
       case 0b1110: // Up
         if(lineIndex[H_MENU] == 0) {
-          offset = updateCursor(UP, manualControlScreenDisplayNumber, 2);
+          offset = updateCursor(UP, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);
           updateManualControlScreen(offset);
         }
         else {
@@ -554,7 +586,7 @@ void manualControlScreen() {
         break;
       case 0b1101: // Down
         if(lineIndex[H_MENU] == 0) {
-          offset = updateCursor(DOWN, manualControlScreenDisplayNumber, 2);
+          offset = updateCursor(DOWN, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);
           updateManualControlScreen(offset);
         }
         else {
@@ -587,7 +619,7 @@ void manualControlScreen() {
         delay(MINIMUM_DELAY);
         break;
       case 0b1011: // Ok
-        offset = updateCursor(RIGHT, manualControlScreenDisplayNumber, 2);
+        offset = updateCursor(RIGHT, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);
 
         if(offset > 0) {
           lcd.setCursor(1, 3);
@@ -656,7 +688,7 @@ void calibrateServo() {
   }
 }
 
-void updateCalibrateScreen(int offset) {
+void updateCalibrateScreen(int offset, const char *calibrateScreenDisplay[]) {
   lcd.setCursor(0, 0);
   lcd.print("Calibrate");
 
@@ -667,13 +699,19 @@ void updateCalibrateScreen(int offset) {
 }
 
 void calibrateScreen() {
+  const char *calibrateScreenDisplay[] = {
+    "Servo A - 0 deg  ",
+    "Servo A - 180 deg",
+    "Servo B - 0 deg  ",
+    "Servo B - 180 deg",
+  };
   int offset = 0;
   int increment = 1;
 
   lcd.clear();
 
-  offset = updateCursor(START, calibrateScreenDisplayNumber, 2);
-  updateCalibrateScreen(offset);
+  offset = updateCursor(START, CALIBRATE_SCREEN_DISPLAY_NUMBER, 2);
+  updateCalibrateScreen(offset, calibrateScreenDisplay);
 
   while(true) {
     int buttonsState = checkButtons();
@@ -681,8 +719,8 @@ void calibrateScreen() {
     switch(buttonsState) {
       case 0b1110: // Up
         if(lineIndex[H_MENU] == 0) {
-          offset = updateCursor(UP, calibrateScreenDisplayNumber, 2);
-          updateCalibrateScreen(offset);
+          offset = updateCursor(UP, CALIBRATE_SCREEN_DISPLAY_NUMBER, 2);
+          updateCalibrateScreen(offset, calibrateScreenDisplay);
         }
         else {
           servoDutyCycles[lineIndex[V_MENU]] += increment;
@@ -711,8 +749,8 @@ void calibrateScreen() {
         break;
       case 0b1101: // Down
         if(lineIndex[H_MENU] == 0) {
-          offset = updateCursor(DOWN, calibrateScreenDisplayNumber, 2);
-          updateCalibrateScreen(offset);
+          offset = updateCursor(DOWN, CALIBRATE_SCREEN_DISPLAY_NUMBER, 2);
+          updateCalibrateScreen(offset, calibrateScreenDisplay);
         }
         else {
           servoDutyCycles[lineIndex[V_MENU]] -= increment;
@@ -740,7 +778,7 @@ void calibrateScreen() {
         delay(MINIMUM_DELAY);
         break;
       case 0b1011: // Ok
-        offset = updateCursor(RIGHT, calibrateScreenDisplayNumber, 2);
+        offset = updateCursor(RIGHT, CALIBRATE_SCREEN_DISPLAY_NUMBER, 2);
 
         if(offset > 0) {
           lcd.setCursor(1, 3);
@@ -792,7 +830,7 @@ void calibrateScreen() {
   }
 }
 
-void updateSettingsScreen(int offset) {
+void updateSettingsScreen(int offset, const char *settingsScreenDisplay[]) {
   lcd.setCursor(0, 0);
   lcd.print("Settings");
 
@@ -803,13 +841,25 @@ void updateSettingsScreen(int offset) {
 }
 
 void settingsScreen() {
+  const char *settingsScreenDisplay[] = {
+    "Inst. height  ",
+    "Benchmark     ",
+    "Grid dimension",
+    "Samples       "
+  };
+  const char *variablesUnit[] = {
+    "mm",
+    "mm",
+    "mm",
+    ""
+  };
   int offset = 0;
   double increment = 0.1;
 
   lcd.clear();
 
-  offset = updateCursor(START, settingsScreenDisplayNumber, 2);
-  updateSettingsScreen(offset);
+  offset = updateCursor(START, SETTINGS_SCREEN_DISPLAY_NUMBER, 2);
+  updateSettingsScreen(offset, settingsScreenDisplay);
 
   while(true) {
     int buttonsState = checkButtons();
@@ -817,8 +867,8 @@ void settingsScreen() {
     switch(buttonsState) {
       case 0b1110: // Up
         if(lineIndex[H_MENU] == 0) {
-          offset = updateCursor(UP, settingsScreenDisplayNumber, 2);
-          updateSettingsScreen(offset);
+          offset = updateCursor(UP, SETTINGS_SCREEN_DISPLAY_NUMBER, 2);
+          updateSettingsScreen(offset, settingsScreenDisplay);
         }
         else {
           variables[lineIndex[V_MENU]] += increment;
@@ -845,8 +895,8 @@ void settingsScreen() {
         break;
       case 0b1101: // Down
         if(lineIndex[H_MENU] == 0) {
-          offset = updateCursor(DOWN, settingsScreenDisplayNumber, 2);
-          updateSettingsScreen(offset);
+          offset = updateCursor(DOWN, SETTINGS_SCREEN_DISPLAY_NUMBER, 2);
+          updateSettingsScreen(offset, settingsScreenDisplay);
         }
         else {
           variables[lineIndex[V_MENU]] -= increment;
@@ -872,7 +922,7 @@ void settingsScreen() {
         delay(MINIMUM_DELAY);
         break;
       case 0b1011: // Ok
-        offset = updateCursor(RIGHT, settingsScreenDisplayNumber, 2);
+        offset = updateCursor(RIGHT, SETTINGS_SCREEN_DISPLAY_NUMBER, 2);
 
         if(offset > 0) {
           lcd.setCursor(1, 3);
@@ -921,32 +971,6 @@ void settingsScreen() {
   }
 }
 
-void initButtons() {
-  lcd.clear();
-  lcd.setCursor(0,3);
-  lcd.print("Init buttons...");
-
-  pinMode(BUTTON_A, INPUT_PULLUP);
-  pinMode(BUTTON_B, INPUT_PULLUP);
-  pinMode(BUTTON_C, INPUT_PULLUP);
-  pinMode(BUTTON_D, INPUT_PULLUP);
-
-  delay(MINIMUM_DELAY);
-
-  lcd.clear();
-  lcd.setCursor(0,3);
-  lcd.print("Init buttons... ok");
-
-  delay(MINIMUM_DELAY);
-}
-
-void initLCD() {
-  lcd.begin (20,4);
-  lcd.setBacklightPin(3, POSITIVE);
-  lcd.setBacklight(HIGH);
-  delay(MINIMUM_DELAY);
-}
-
 int checkButtons() {
   int buttonStateA = digitalRead(BUTTON_A);
   int buttonStateB = digitalRead(BUTTON_B);
@@ -954,31 +978,6 @@ int checkButtons() {
   int buttonStateD = digitalRead(BUTTON_D);
 
   return (buttonStateA << 0) | (buttonStateB << 1) | (buttonStateC << 2) | (buttonStateD << 3);
-}
-
-void initDistanceSensor() {
-  lcd.clear();
-  lcd.setCursor(0,3);
-  lcd.print("Init sensor...");
-
-  Wire.begin();
-
-  if (distanceSensor.begin() != 0) { //Begin returns 0 on a good init
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print("Init sensor... fail");
-    while (1);
-  }
-
-  distanceSensor.setDistanceModeLong();
-
-  delay(MINIMUM_DELAY);
-
-  lcd.clear();
-  lcd.setCursor(0,3);
-  lcd.print("Init sensor... ok");
-
-  delay(MINIMUM_DELAY);
 }
 
 int measureDistance() {
@@ -995,22 +994,6 @@ int measureDistance() {
   }
 
   return distance/variables[SAMPLES];
-}
-
-void initServoMotors() {
-  lcd.clear();
-  lcd.setCursor(0,3);
-  lcd.print("Init servo...");
-
-  servoA.attach(SERVO_A);
-  servoB.attach(SERVO_B);
-  delay(1000);
-
-  lcd.clear();
-  lcd.setCursor(0,3);
-  lcd.print("Init servo... ok");
-
-  delay(MINIMUM_DELAY);
 }
 
 void calculateGridPoints() {
