@@ -28,8 +28,6 @@
 #include <SparkFun_VL53L1X.h>
 #include <vl53l1x_class.h>
 #include <vl53l1_error_codes.h>
-#include <SPI.h>
-#include <SD.h>
 
 #define MINIMUM_DELAY 250
 
@@ -49,9 +47,9 @@
 #define RIGHT 5
 
 #define SERVO_A_0 0
-#define SERVO_A_180 1
+#define SERVO_A_90 1
 #define SERVO_B_0 2
-#define SERVO_B_180 3
+#define SERVO_B_90 3
 
 #define SERVO_A_MANUAL 0
 #define SERVO_B_MANUAL 1
@@ -116,10 +114,10 @@ double manualControlServoAngles[] = {
 };
 
 int servoDutyCycles[] = {
-  490,
-  2530,
-  410,
-  2520
+  570,
+  1570,
+  880,
+  1900
 };
 
 Servo servoA;
@@ -186,10 +184,26 @@ void initDistanceSensor() {
 }
 
 void initServoMotors() {
+  int dutyCycle;
+
   printStatus("Init servo...");
 
   servoA.attach(SERVO_A);
   servoB.attach(SERVO_B);
+  delay(1000);
+
+  dutyCycle = map(90, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
+  servoB.writeMicroseconds(dutyCycle);
+
+  dutyCycle = map( 0, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
+  servoA.writeMicroseconds(dutyCycle);
+  delay(1000);
+
+  dutyCycle = map( 0, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
+  servoB.writeMicroseconds(dutyCycle);
+
+  dutyCycle = map(90, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
+  servoA.writeMicroseconds(dutyCycle);
   delay(1000);
 
   printStatus("Init servo... ok");
@@ -340,15 +354,20 @@ void startScreen() {
     lcd.setCursor(14,0);
     lcd.print(gridPointLocation[i]);
 
-    angle = data[SERVO_A_ANGLE_INFO][i] * RAD_TO_DEG;
-    dutyCycle = map(angle, 0, 180, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_180]);
+    dutyCycle = map( 0, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
+    servoB.writeMicroseconds(dutyCycle);
+    dutyCycle = map(90, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
     servoA.writeMicroseconds(dutyCycle);
+    delay(1000);
 
     angle = data[SERVO_B_ANGLE_INFO][i] * RAD_TO_DEG;
-    dutyCycle = map(angle, 0, 180, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_180]);
+    dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
     servoB.writeMicroseconds(dutyCycle);
 
-    delay(3000);
+    angle = data[SERVO_A_ANGLE_INFO][i] * RAD_TO_DEG;
+    dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
+    servoA.writeMicroseconds(dutyCycle);
+    delay(2000);
 
     data[DISTANCE_INFO][i] = measureDistance();
     data[Y_INFO][i] = data[DISTANCE_INFO][i] * sin(data[SERVO_A_ANGLE_INFO][i]);
@@ -359,14 +378,14 @@ void startScreen() {
     lcd.setCursor(0, 2);
     lcd.print(data[ELEVATION_INFO][i]);
 
-    delay(2000);
+    delay(1000);
   }
 
-  dutyCycle = map(90, 0, 180, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_180]);
-  servoA.writeMicroseconds(dutyCycle);
-
-  dutyCycle = map(90, 0, 180, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_180]);
+  dutyCycle = map( 0, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
   servoB.writeMicroseconds(dutyCycle);
+
+  dutyCycle = map(90, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
+  servoA.writeMicroseconds(dutyCycle);
 
   elevationSummaryScreen();
 }
@@ -512,12 +531,12 @@ void manualControlServo() {
   switch(lineIndex[V_MENU]) {
     case SERVO_A_MANUAL:
       angle = manualControlServoAngles[SERVO_A_MANUAL];
-      dutyCycle = map(angle, 0, 180, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_180]);
+      dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
       servoA.writeMicroseconds(dutyCycle);
       break;
     case SERVO_B_MANUAL:
       angle = manualControlServoAngles[SERVO_B_MANUAL];
-      dutyCycle = map(angle, 0, 180, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_180]);
+      dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
       servoB.writeMicroseconds(dutyCycle);
       break;
   }
@@ -558,8 +577,8 @@ void manualControlScreen() {
         else {
           manualControlServoAngles[lineIndex[V_MENU]] += increment;
 
-          if(manualControlServoAngles[lineIndex[V_MENU]] > 180) {
-            manualControlServoAngles[lineIndex[V_MENU]] = 180;
+          if(manualControlServoAngles[lineIndex[V_MENU]] > 90) {
+            manualControlServoAngles[lineIndex[V_MENU]] = 90;
           }
 
           if(offset > 0) {
@@ -676,14 +695,14 @@ void calibrateServo() {
     case SERVO_A_0:
       servoA.writeMicroseconds(servoDutyCycles[SERVO_A_0]);
       break;
-    case SERVO_A_180:
-      servoA.writeMicroseconds(servoDutyCycles[SERVO_A_180]);
+    case SERVO_A_90:
+      servoA.writeMicroseconds(servoDutyCycles[SERVO_A_90]);
       break;
     case SERVO_B_0:
       servoB.writeMicroseconds(servoDutyCycles[SERVO_B_0]);
       break;
-    case SERVO_B_180:
-      servoB.writeMicroseconds(servoDutyCycles[SERVO_B_180]);
+    case SERVO_B_90:
+      servoB.writeMicroseconds(servoDutyCycles[SERVO_B_90]);
       break;
   }
 }
@@ -701,9 +720,9 @@ void updateCalibrateScreen(int offset, const char *calibrateScreenDisplay[]) {
 void calibrateScreen() {
   const char *calibrateScreenDisplay[] = {
     "Servo A - 0 deg  ",
-    "Servo A - 180 deg",
+    "Servo A - 90 deg",
     "Servo B - 0 deg  ",
-    "Servo B - 180 deg",
+    "Servo B - 90 deg",
   };
   int offset = 0;
   int increment = 1;
@@ -1000,11 +1019,11 @@ void calculateGridPoints() {
   data[X_INFO][0] = 0.5 * variables[GRID_AREA];
   data[X_INFO][1] = variables[GRID_AREA];
   data[X_INFO][2] = sqrt(1.25 * variables[GRID_AREA] * variables[GRID_AREA]);
-  data[X_INFO][3] = sqrt(2    * variables[GRID_AREA] * variables[GRID_AREA]);
-  data[X_INFO][4] = sqrt(0.5  * variables[GRID_AREA] * variables[GRID_AREA]);
+  data[X_INFO][3] = sqrt(0.5  * variables[GRID_AREA] * variables[GRID_AREA]);
+  data[X_INFO][4] = sqrt(2    * variables[GRID_AREA] * variables[GRID_AREA]);
   data[X_INFO][5] = sqrt(1.25 * variables[GRID_AREA] * variables[GRID_AREA]);
-  data[X_INFO][6] = variables[GRID_AREA];
-  data[X_INFO][7] = 0.5 * variables[GRID_AREA];
+  data[X_INFO][6] = 0.5 * variables[GRID_AREA];
+  data[X_INFO][7] = variables[GRID_AREA];
 
   for(int i=0; i<GRID_POINTS; i++) {
     data[SERVO_A_ANGLE_INFO][i] = atan2(variables[INSTRUMENT_HEIGHT], data[X_INFO][i]);
@@ -1014,12 +1033,12 @@ void calculateGridPoints() {
   double beta = atan2(variables[GRID_AREA], variables[GRID_AREA]);
   double gamma = HALF_PI - alpha - beta;
 
-  data[SERVO_B_ANGLE_INFO][0] = 0.5 * HALF_PI;
-  data[SERVO_B_ANGLE_INFO][1] = 0.5 * HALF_PI;
-  data[SERVO_B_ANGLE_INFO][2] = HALF_PI - gamma;
-  data[SERVO_B_ANGLE_INFO][3] = HALF_PI;
-  data[SERVO_B_ANGLE_INFO][4] = HALF_PI;
-  data[SERVO_B_ANGLE_INFO][5] = HALF_PI + gamma;
-  data[SERVO_B_ANGLE_INFO][6] = 1.5 * HALF_PI;
-  data[SERVO_B_ANGLE_INFO][7] = 1.5 * HALF_PI;
+  data[SERVO_B_ANGLE_INFO][0] = 0; // 0.5 * HALF_PI;
+  data[SERVO_B_ANGLE_INFO][1] = 0; // 0.5 * HALF_PI;
+  data[SERVO_B_ANGLE_INFO][2] = 0.5 * HALF_PI - gamma; // HALF_PI - gamma;
+  data[SERVO_B_ANGLE_INFO][3] = 0.5 * HALF_PI; // HALF_PI;
+  data[SERVO_B_ANGLE_INFO][4] = 0.5 * HALF_PI; // HALF_PI;
+  data[SERVO_B_ANGLE_INFO][5] = 0.5 * HALF_PI + gamma; // HALF_PI + gamma;
+  data[SERVO_B_ANGLE_INFO][6] = HALF_PI; // 1.5 * HALF_PI;
+  data[SERVO_B_ANGLE_INFO][7] = HALF_PI; // 1.5 * HALF_PI;
 }
