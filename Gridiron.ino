@@ -657,22 +657,22 @@ void elevationSummaryScreen() {
           for(int i=0; i<INFO_NUMBER; i++) {
             switch(i) {
               case ELEVATION_INFO:
-                elevationData.print(F("Elevation (mm), "));
+                elevationData.print(F("Elevation Info (mm), "));
                 break;
               case SERVO_A_ANGLE_INFO:
-                elevationData.print(F("ServoA Angle (rad), "));
+                elevationData.print(F("Servo A Angle Info (rad), "));
                 break;
               case DISTANCE_INFO:
-                elevationData.print(F("Distance (mm), "));
+                elevationData.print(F("Distance Info (mm), "));
                 break;
               case X_INFO:
-                elevationData.print(F("X (mm), "));
+                elevationData.print(F("X Info (mm), "));
                 break;
               case Y_INFO:
-                elevationData.print(F("Y (mm), "));
+                elevationData.print(F("Y Info (mm), "));
                 break;
               case SERVO_B_ANGLE_INFO:
-                elevationData.print(F("ServoB Angle (rad)"));
+                elevationData.print(F("Servo B Angle Info (rad)"));
                 break;
             }
           }
@@ -790,10 +790,10 @@ void updateManualControlScreen(int offset) {
   lcd.print(F("Manual Control"));
 
   lcd.setCursor(1, 1);
-  lcd.print(F("ServoA"));
+  lcd.print(F("Servo A"));
 
   lcd.setCursor(1, 2);
-  lcd.print(F("ServoB"));
+  lcd.print(F("Servo B"));
 }
 
 void manualControlScreen() {
@@ -888,10 +888,10 @@ void manualControlScreen() {
           if(lineIndex[H_MENU] == 0) {
             /*lcd.print(manualControlScreenDisplay[lineIndex[V_MENU]]);*/
             if(lineIndex[V_MENU] == 0) {
-              lcd.print(F("ServoA"));
+              lcd.print(F("Servo A"));
             }
             else {
-              lcd.print(F("ServoB"));
+              lcd.print(F("Servo B"));
             }
           }
           else {
@@ -909,10 +909,10 @@ void manualControlScreen() {
           if(lineIndex[H_MENU] == 0) {
             /*lcd.print(manualControlScreenDisplay[lineIndex[V_MENU]]);*/
             if(lineIndex[V_MENU] == 0) {
-              lcd.print(F("ServoA"));
+              lcd.print(F("Servo A"));
             }
             else {
-              lcd.print(F("ServoB"));
+              lcd.print(F("Servo B"));
             }
           }
           else {
@@ -965,19 +965,19 @@ void updateCalibrateScreen(int offset) {
 
   if(offset == 0) {
     lcd.setCursor(1, 1);
-    lcd.print(F("ServoA -  0"));
+    lcd.print(F("Servo A -  0 deg"));
     lcd.setCursor(1, 2);
-    lcd.print(F("ServoA - 90"));
+    lcd.print(F("Servo A - 90 deg"));
     lcd.setCursor(1, 3);
-    lcd.print(F("ServoB -  0"));
+    lcd.print(F("Servo B -  0 deg"));
   }
   else {
     lcd.setCursor(1, 1);
-    lcd.print(F("ServoA - 90"));
+    lcd.print(F("Servo A - 90 deg"));
     lcd.setCursor(1, 2);
-    lcd.print(F("ServoB -  0"));
+    lcd.print(F("Servo B -  0 deg"));
     lcd.setCursor(1, 3);
-    lcd.print(F("ServoB - 90"));
+    lcd.print(F("Servo B - 90 deg"));
   }
 }
 
@@ -1067,16 +1067,16 @@ void calibrateScreen() {
             /*lcd.print(calibrateScreenDisplay[lineIndex[V_MENU]]);*/
             switch(lineIndex[V_MENU]) {
               case 0:
-                lcd.print(F("ServoA -  0"));
+                lcd.print(F("Servo A -  0 deg"));
                 break;
               case 1:
-                lcd.print(F("ServoA - 90"));
+                lcd.print(F("Servo A - 90 deg"));
                 break;
               case 2:
-                lcd.print(F("ServoB -  0"));
+                lcd.print(F("Servo B -  0 deg"));
                 break;
               case 3:
-                lcd.print(F("ServoB - 90"));
+                lcd.print(F("Servo B - 90 deg"));
                 break;
             }
           }
@@ -1096,16 +1096,16 @@ void calibrateScreen() {
             /*lcd.print(calibrateScreenDisplay[lineIndex[V_MENU]]);*/
             switch(lineIndex[V_MENU]) {
               case 0:
-                lcd.print(F("ServoA -  0"));
+                lcd.print(F("Servo A -  0 deg"));
                 break;
               case 1:
-                lcd.print(F("ServoA - 90"));
+                lcd.print(F("Servo A - 90 deg"));
                 break;
               case 2:
-                lcd.print(F("ServoB -  0"));
+                lcd.print(F("Servo B -  0 deg"));
                 break;
               case 3:
-                lcd.print(F("ServoB - 90"));
+                lcd.print(F("Servo B - 90 deg"));
                 break;
             }
           }
