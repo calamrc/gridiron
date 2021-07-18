@@ -741,11 +741,13 @@ int updateCursor(const int dir, int numberOfOptionsLeft, int numberOfOptionsRigh
 
   if(numberOfOptionsLeft < 3) maxOptions = numberOfOptionsLeft;
 
-  for(int i=0; i<maxOptions; i++) {
-    int tempCursor;
+  if((lineIndex[V_MENU] % 3 == 0) && (lineIndex[H_MENU] == 0)) lcd.clear();
 
-    if(indexDiff > 0) tempCursor = 2;
-    else tempCursor = lineIndex[V_MENU];
+  for(int i=0; i<maxOptions; i++) {
+    int tempCursor = lineIndex[V_MENU] % 3;
+
+    /*if(indexDiff > 0) tempCursor = 2;*/
+    /*else tempCursor = lineIndex[V_MENU];*/
 
     if(i == tempCursor) {
       lcd.setCursor(0, i+1);
@@ -973,10 +975,6 @@ void updateCalibrateScreen(int offset) {
   }
   else {
     lcd.setCursor(1, 1);
-    lcd.print(F("Servo A - 90 deg"));
-    lcd.setCursor(1, 2);
-    lcd.print(F("Servo B -  0 deg"));
-    lcd.setCursor(1, 3);
     lcd.print(F("Servo B - 90 deg"));
   }
 }
@@ -1003,26 +1001,19 @@ void calibrateScreen() {
         else {
           servoDutyCycles[lineIndex[V_MENU]] -= increment;
 
-          if(offset > 0) {
-            lcd.setCursor(1, 3);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, 3);
-            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, 3);
-            lcd.print(F("ms"));
-          }
-          else {
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, lineIndex[V_MENU]+1);
-            lcd.print(F("ms"));
-          }
+          int tempIndex = (lineIndex[V_MENU] % 3) + 1;
+
+          lcd.setCursor(1, tempIndex);
+          lcd.print(F("                   "));
+          lcd.setCursor(1, tempIndex);
+          lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
+          lcd.setCursor(17, tempIndex);
+          lcd.print(F("ms"));
 
           calibrateServo();
 
         }
+
         delay(MINIMUM_DELAY);
         break;
       case 0b1101: // Down
@@ -1033,95 +1024,28 @@ void calibrateScreen() {
         else {
           servoDutyCycles[lineIndex[V_MENU]] += increment;
 
-          if(offset > 0) {
-            lcd.setCursor(1, 3);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, 3);
-            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, 3);
-            lcd.print(F("ms"));
-          }
-          else {
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, lineIndex[V_MENU]+1);
-            lcd.print(F("ms"));
-          }
+          int tempIndex = (lineIndex[V_MENU] % 3) + 1;
+
+          lcd.setCursor(1, tempIndex);
+          lcd.print(F("                   "));
+          lcd.setCursor(1, tempIndex);
+          lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
+          lcd.setCursor(17, tempIndex);
+          lcd.print(F("ms"));
 
           calibrateServo();
 
         }
-        delay(MINIMUM_DELAY);
-        break;
-      case 0b1011: // Ok
-        offset = updateCursor(RIGHT, CALIBRATE_SCREEN_DISPLAY_NUMBER, 2);
-
-        if(offset > 0) {
-          lcd.setCursor(1, 3);
-          lcd.print(F("                   "));
-          lcd.setCursor(1, 3);
-
-          if(lineIndex[H_MENU] == 0) {
-            /*lcd.print(calibrateScreenDisplay[lineIndex[V_MENU]]);*/
-            switch(lineIndex[V_MENU]) {
-              case 0:
-                lcd.print(F("Servo A -  0 deg"));
-                break;
-              case 1:
-                lcd.print(F("Servo A - 90 deg"));
-                break;
-              case 2:
-                lcd.print(F("Servo B -  0 deg"));
-                break;
-              case 3:
-                lcd.print(F("Servo B - 90 deg"));
-                break;
-            }
-          }
-          else {
-            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, 3);
-            lcd.print(F("ms"));
-            calibrateServo();
-          }
-        }
-        else {
-          lcd.setCursor(1, lineIndex[V_MENU]+1);
-          lcd.print(F("                   "));
-          lcd.setCursor(1, lineIndex[V_MENU]+1);
-
-          if(lineIndex[H_MENU] == 0) {
-            /*lcd.print(calibrateScreenDisplay[lineIndex[V_MENU]]);*/
-            switch(lineIndex[V_MENU]) {
-              case 0:
-                lcd.print(F("Servo A -  0 deg"));
-                break;
-              case 1:
-                lcd.print(F("Servo A - 90 deg"));
-                break;
-              case 2:
-                lcd.print(F("Servo B -  0 deg"));
-                break;
-              case 3:
-                lcd.print(F("Servo B - 90 deg"));
-                break;
-            }
-          }
-          else {
-            lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, lineIndex[V_MENU]+1);
-            lcd.print(F("ms"));
-            calibrateServo();
-          }
-        }
 
         delay(MINIMUM_DELAY);
-
         break;
-      case 0b0111: // NA
+      case 0b0111: // Ok
         if(lineIndex[H_MENU] == 0) {
+          lcd.clear();
+          lcd.setCursor(0, 3);
+          lcd.print(F("Saving coeffs..."));
+          delay(MINIMUM_DELAY);
+
           if(SD.exists("sa0")) SD.remove("sa0");
           entry = SD.open("sa0", FILE_WRITE);
           entry.print(servoDutyCycles[SERVO_A_0]);
@@ -1142,6 +1066,11 @@ void calibrateScreen() {
           entry.print(servoDutyCycles[SERVO_B_90]);
           entry.close();
 
+          lcd.clear();
+          lcd.setCursor(0, 3);
+          lcd.print(F("Saving coeffs... ok"));
+          delay(MINIMUM_DELAY);
+
           return;
         }
         else {
@@ -1149,6 +1078,28 @@ void calibrateScreen() {
           if(increment == 10000) increment = 1;
           delay(MINIMUM_DELAY);
         }
+        break;
+      case 0b1011: // Ok
+        offset = updateCursor(RIGHT, CALIBRATE_SCREEN_DISPLAY_NUMBER, 2);
+
+        int tempIndex = (lineIndex[V_MENU] % 3) + 1;
+
+        lcd.setCursor(1, tempIndex);
+        lcd.print(F("                   "));
+        lcd.setCursor(1, tempIndex);
+
+        if(lineIndex[H_MENU] == 0) {
+          updateCalibrateScreen(offset);
+        }
+        else {
+          lcd.print(servoDutyCycles[lineIndex[V_MENU]]);
+          lcd.setCursor(17, tempIndex);
+          lcd.print(F("ms"));
+
+          calibrateServo();
+        }
+
+        delay(MINIMUM_DELAY);
         break;
       default:
         break;
@@ -1170,10 +1121,6 @@ void updateSettingsScreen(int offset) {
   }
   else {
     lcd.setCursor(1, 1);
-    lcd.print(F("Benchmark     "));
-    lcd.setCursor(1, 2);
-    lcd.print(F("Grid dimension"));
-    lcd.setCursor(1, 3);
     lcd.print(F("Samples       "));
   }
 }
@@ -1200,38 +1147,22 @@ void settingsScreen() {
         else {
           variables[lineIndex[V_MENU]] -= increment;
 
-          if(offset > 0) {
-            lcd.setCursor(1, 3);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, 3);
-            lcd.print(variables[lineIndex[V_MENU]]);
-            lcd.setCursor(17, 3);
-            /*lcd.print(variablesUnit[lineIndex[V_MENU]]);*/
-            switch(lineIndex[V_MENU]) {
-              case 3:
-                lcd.print(F(""));
-                break;
-              default:
-                lcd.print(F("mm"));
-            }
-          }
-          else {
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(variables[lineIndex[V_MENU]]);
-            lcd.setCursor(17, lineIndex[V_MENU]+1);
-            /*lcd.print(variablesUnit[lineIndex[V_MENU]]);*/
-            switch(lineIndex[V_MENU]) {
-              case 3:
-                lcd.print(F(""));
-                break;
-              default:
-                lcd.print(F("mm"));
-            }
-          }
+          int tempIndex = (lineIndex[V_MENU] % 3) + 1;
 
+          lcd.setCursor(1, tempIndex);
+          lcd.print(F("                   "));
+          lcd.setCursor(1, tempIndex);
+          lcd.print(variables[lineIndex[V_MENU]]);
+          lcd.setCursor(17, tempIndex);
+          switch(lineIndex[V_MENU]) {
+            case 3:
+              lcd.print(F(""));
+              break;
+            default:
+              lcd.print(F("mm"));
+          }
         }
+
         delay(MINIMUM_DELAY);
         break;
       case 0b1101: // Down
@@ -1242,118 +1173,32 @@ void settingsScreen() {
         else {
           variables[lineIndex[V_MENU]] += increment;
 
-          if(offset > 0) {
-            lcd.setCursor(1, 3);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, 3);
-            lcd.print(variables[lineIndex[V_MENU]]);
-            lcd.setCursor(17, 3);
-            /*lcd.print(variablesUnit[lineIndex[V_MENU]]);*/
-            switch(lineIndex[V_MENU]) {
-              case 3:
-                lcd.print(F(""));
-                break;
-              default:
-                lcd.print(F("mm"));
-            }
-          }
-          else {
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(variables[lineIndex[V_MENU]]);
-            lcd.setCursor(17, lineIndex[V_MENU]+1);
-            /*lcd.print(variablesUnit[lineIndex[V_MENU]]);*/
-            switch(lineIndex[V_MENU]) {
-              case 3:
-                lcd.print(F(""));
-                break;
-              default:
-                lcd.print(F("mm"));
-            }
+          int tempIndex = (lineIndex[V_MENU] % 3) + 1;
+
+          lcd.setCursor(1, tempIndex);
+          lcd.print(F("                   "));
+          lcd.setCursor(1, tempIndex);
+          lcd.print(variables[lineIndex[V_MENU]]);
+          lcd.setCursor(17, tempIndex);
+          switch(lineIndex[V_MENU]) {
+            case 3:
+              lcd.print(F(""));
+              break;
+            default:
+              lcd.print(F("mm"));
           }
 
         }
+
         delay(MINIMUM_DELAY);
         break;
-      case 0b1011: // Ok
-        offset = updateCursor(RIGHT, SETTINGS_SCREEN_DISPLAY_NUMBER, 2);
-
-        if(offset > 0) {
-          lcd.setCursor(1, 3);
-          lcd.print(F("                   "));
-          lcd.setCursor(1, 3);
-
-          if(lineIndex[H_MENU] == 0) {
-            /*lcd.print(settingsScreenDisplay[lineIndex[V_MENU]]);*/
-            switch(lineIndex[V_MENU]) {
-              case 0:
-                lcd.print(F("Inst. height  "));
-                break;
-              case 1:
-                lcd.print(F("Benchmark     "));
-                break;
-              case 2:
-                lcd.print(F("Grid dimension"));
-                break;
-              case 3:
-                lcd.print(F("Samples       "));
-                break;
-            }
-          }
-          else {
-            lcd.print(variables[lineIndex[V_MENU]]);
-            lcd.setCursor(17, 3);
-            /*lcd.print(variablesUnit[lineIndex[V_MENU]]);*/
-            switch(lineIndex[V_MENU]) {
-              case 3:
-                lcd.print(F(""));
-                break;
-              default:
-                lcd.print(F("mm"));
-            }
-          }
-
-        }
-        else {
-          lcd.setCursor(1, lineIndex[V_MENU]+1);
-          lcd.print(F("                   "));
-          lcd.setCursor(1, lineIndex[V_MENU]+1);
-
-          if(lineIndex[H_MENU] == 0) {
-            /*lcd.print(settingsScreenDisplay[lineIndex[V_MENU]]);*/
-            switch(lineIndex[V_MENU]) {
-              case 0:
-                lcd.print(F("Inst. height  "));
-                break;
-              case 1:
-                lcd.print(F("Benchmark     "));
-                break;
-              case 2:
-                lcd.print(F("Grid dimension"));
-                break;
-              case 3:
-                lcd.print(F("Samples       "));
-                break;
-            }
-          }
-          else {
-            lcd.print(variables[lineIndex[V_MENU]]);
-            lcd.setCursor(17, lineIndex[V_MENU]+1);
-            /*lcd.print(variablesUnit[lineIndex[V_MENU]]);*/
-            switch(lineIndex[V_MENU]) {
-              case 3:
-                lcd.print(F(""));
-                break;
-              default:
-                lcd.print(F("mm"));
-            }
-          }
-        }
-
-        break;
-      case 0b0111: // NA
+      case 0b0111: // Ok
         if(lineIndex[H_MENU] == 0) {
+          lcd.clear();
+          lcd.setCursor(0, 3);
+          lcd.print(F("Saving settings..."));
+          delay(MINIMUM_DELAY);
+
           if(SD.exists("ih")) SD.remove("ih");
           entry = SD.open("ih", FILE_WRITE);
           entry.print(variables[INSTRUMENT_HEIGHT]);
@@ -1374,6 +1219,11 @@ void settingsScreen() {
           entry.print(variables[SAMPLES]);
           entry.close();
 
+          lcd.clear();
+          lcd.setCursor(0, 3);
+          lcd.print(F("Saving settings...ok"));
+          delay(MINIMUM_DELAY);
+
           return;
         }
         else {
@@ -1381,8 +1231,31 @@ void settingsScreen() {
           if(increment == 10000) increment = 1;
           delay(MINIMUM_DELAY);
         }
+
         break;
-      default:
+      case 0b1011: // Ok
+        offset = updateCursor(RIGHT, SETTINGS_SCREEN_DISPLAY_NUMBER, 2);
+
+        int tempIndex = (lineIndex[V_MENU] % 3) + 1;
+
+        lcd.setCursor(1, tempIndex);
+        lcd.print(F("                   "));
+        lcd.setCursor(1, tempIndex);
+
+        if(lineIndex[H_MENU] == 0) {
+          updateSettingsScreen(offset);
+        }
+        else {
+          lcd.print(variables[lineIndex[V_MENU]]);
+          lcd.setCursor(17, tempIndex);
+          switch(lineIndex[V_MENU]) {
+            case 3:
+              lcd.print(F(""));
+              break;
+            default:
+              lcd.print(F("mm"));
+          }
+        }
         break;
     }
   }
