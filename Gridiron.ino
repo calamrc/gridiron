@@ -52,14 +52,16 @@
 #define RIGHT 5
 
 #define SERVO_A_0 0
-#define SERVO_A_90 1
-#define SERVO_B_0 2
-#define SERVO_B_90 3
+#define SERVO_A_45 1
+#define SERVO_A_90 2
+#define SERVO_B_0 3
+#define SERVO_B_45 4
+#define SERVO_B_90 5
 
 #define SERVO_A_MANUAL 0
 #define SERVO_B_MANUAL 1
 
-#define CALIBRATE_SCREEN_DISPLAY_NUMBER 4
+#define CALIBRATE_SCREEN_DISPLAY_NUMBER 6
 #define SETTINGS_SCREEN_DISPLAY_NUMBER 4
 #define MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER 2
 #define MAIN_SCREEN_DISPLAY_NUMBER 3
@@ -88,26 +90,32 @@
 #define GRID_AREA 2
 #define SAMPLES 3
 
-int lineIndex[2] = {0, 0};
-double data[INFO_NUMBER][GRID_POINTS];
-int variables[] = {
+int lineIndex[2] = {
+  0,
+  0
+};
+
+int settings[] = {
   1000,
   0,
   1000,
   3
 };
 
-double manualControlServoAngles[] = {
-  90,
-  90,
-};
-
 int servoDutyCycles[] = {
   570,
+  1000,
   1570,
   880,
+  1000,
   1900
 };
+
+double data[INFO_NUMBER][GRID_POINTS];
+/*double manualControlServoAngles[] = {*/
+  /*90,*/
+  /*90,*/
+/*};*/
 
 Servo servoA;
 Servo servoB;
@@ -161,6 +169,15 @@ void initVariables() {
     servoDutyCycles[SERVO_A_0] = atoi(buf);
   }
 
+  if(SD.exists("sa45")) {
+    char buf[10];
+    entry = SD.open("sa45", FILE_READ);
+    entry.read(buf, 10);
+    entry.close();
+
+    servoDutyCycles[SERVO_A_45] = atoi(buf);
+  }
+
   if(SD.exists("sa90")) {
     char buf[10];
     entry = SD.open("sa90", FILE_READ);
@@ -179,6 +196,15 @@ void initVariables() {
     servoDutyCycles[SERVO_B_0] = atoi(buf);
   }
 
+  if(SD.exists("sb45")) {
+    char buf[10];
+    entry = SD.open("sb45", FILE_READ);
+    entry.read(buf, 10);
+    entry.close();
+
+    servoDutyCycles[SERVO_B_45] = atoi(buf);
+  }
+
   if(SD.exists("sb90")) {
     char buf[10];
     entry = SD.open("sb90", FILE_READ);
@@ -194,7 +220,7 @@ void initVariables() {
     entry.read(buf, 10);
     entry.close();
 
-    variables[INSTRUMENT_HEIGHT] = atoi(buf);
+    settings[INSTRUMENT_HEIGHT] = atoi(buf);
   }
 
   if(SD.exists("bm")) {
@@ -203,7 +229,7 @@ void initVariables() {
     entry.read(buf, 10);
     entry.close();
 
-    variables[BENCHMARK] = atoi(buf);
+    settings[BENCHMARK] = atoi(buf);
   }
 
   if(SD.exists("ga")) {
@@ -212,7 +238,7 @@ void initVariables() {
     entry.read(buf, 10);
     entry.close();
 
-    variables[GRID_AREA] = atoi(buf);
+    settings[GRID_AREA] = atoi(buf);
   }
 
   if(SD.exists("sp")) {
@@ -221,7 +247,7 @@ void initVariables() {
     entry.read(buf, 10);
     entry.close();
 
-    variables[SAMPLES] = atoi(buf);
+    settings[SAMPLES] = atoi(buf);
   }
 
   lcd.clear();
@@ -301,23 +327,12 @@ void initServoMotors() {
 
   servoA.attach(SERVO_A);
   servoB.attach(SERVO_B);
+
   delay(1000);
 
-  /*dutyCycle = map(90, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);*/
-  /*servoB.writeMicroseconds(dutyCycle);*/
+  servoB.writeMicroseconds(servoDutyCycles[SERVO_B_0]);
+  servoA.writeMicroseconds(servoDutyCycles[SERVO_A_90]);
 
-  /*dutyCycle = map( 0, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);*/
-  /*servoA.writeMicroseconds(dutyCycle);*/
-  /*delay(1000);*/
-
-  dutyCycle = map( 0, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
-  servoB.writeMicroseconds(dutyCycle);
-
-  dutyCycle = map(90, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
-  servoA.writeMicroseconds(dutyCycle);
-  delay(1000);
-
-  /*printStatus("Init servo... ok");*/
   lcd.clear();
   lcd.setCursor(0,3);
   lcd.print(F("Init servo... ok"));
@@ -468,7 +483,7 @@ void welcomeScreen() {
     lcd.setCursor(6, 1);
     lcd.print(F("GRIDIRON"));
 
-    delay(3000);
+    delay(2000);
 
     lcd.clear();
     delay(500);
@@ -527,83 +542,99 @@ void startScreen() {
         break;
     }
 
-    dutyCycle = map( 0, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
-    servoB.writeMicroseconds(dutyCycle);
-    dutyCycle = map(90, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
+    servoB.writeMicroseconds(servoDutyCycles[SERVO_B_0]);
+    servoA.writeMicroseconds(servoDutyCycles[SERVO_A_90]);
+    delay(3000);
+
+    angle = data[SERVO_B_ANGLE_INFO][i];
+
+    if(angle == 0) {
+      servoB.writeMicroseconds(servoDutyCycles[SERVO_B_0]);
+    }
+    else if(angle == 45) {
+      servoB.writeMicroseconds(servoDutyCycles[SERVO_B_45]);
+    }
+    else if(angle == 90) {
+      servoB.writeMicroseconds(servoDutyCycles[SERVO_B_90]);
+    }
+    else {
+      dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
+      servoB.writeMicroseconds(dutyCycle);
+    }
+    delay(3000);
+
+    angle = data[SERVO_A_ANGLE_INFO][i];
+    dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
     servoA.writeMicroseconds(dutyCycle);
     delay(3000);
 
-    angle = data[SERVO_B_ANGLE_INFO][i] * RAD_TO_DEG;
-    dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
-    servoB.writeMicroseconds(dutyCycle);
-
-    angle = data[SERVO_A_ANGLE_INFO][i] * RAD_TO_DEG;
-    dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
-    servoA.writeMicroseconds(dutyCycle);
-    delay(5000);
-
     data[DISTANCE_INFO][i] = measureDistance();
-    data[Y_INFO][i] = data[DISTANCE_INFO][i] * sin(data[SERVO_A_ANGLE_INFO][i]);
-    data[ELEVATION_INFO][i] = variables[INSTRUMENT_HEIGHT] + variables[BENCHMARK] - data[Y_INFO][i];
+    data[Y_INFO][i] = data[DISTANCE_INFO][i] * sin(data[SERVO_A_ANGLE_INFO][i] * DEG_TO_RAD);
+    data[ELEVATION_INFO][i] = settings[INSTRUMENT_HEIGHT] + settings[BENCHMARK] - data[Y_INFO][i];
 
     lcd.setCursor(0, 1);
     lcd.print(F("Elevation (mm):"));
     lcd.setCursor(0, 2);
     lcd.print(data[ELEVATION_INFO][i]);
 
-    delay(2000);
+    delay(1000);
   }
 
-  dutyCycle = map( 0, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
-  servoB.writeMicroseconds(dutyCycle);
-
-  dutyCycle = map(90, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
-  servoA.writeMicroseconds(dutyCycle);
+  servoB.writeMicroseconds(servoDutyCycles[SERVO_B_0]);
+  servoA.writeMicroseconds(servoDutyCycles[SERVO_A_90]);
 
   elevationSummaryScreen();
 }
 
 void updateElevationSummaryScreen(int offset, int infoIndex) {
+  lcd.setCursor(0, 0);
+  lcd.print(F("              "));
+
   switch(infoIndex) {
     case ELEVATION_INFO:
       lcd.setCursor(0, 0);
-      lcd.print(F(" ELEVATION SUMMARY  "));
+      lcd.print(F("ELEVATION"));
       break;
     case DISTANCE_INFO:
       lcd.setCursor(0, 0);
-      lcd.print(F("  DISTANCE SUMMARY  "));
+      lcd.print(F("DISTANCE"));
       break;
     case SERVO_A_ANGLE_INFO:
       lcd.setCursor(0, 0);
-      lcd.print(F(" HOR. ANGLE SUMMARY "));
+      lcd.print(F("HOR. ANGLE"));
       break;
     case X_INFO:
       lcd.setCursor(0, 0);
-      lcd.print(F("      X SUMMARY     "));
+      lcd.print(F("X"));
       break;
     case Y_INFO:
       lcd.setCursor(0, 0);
-      lcd.print(F("      Y SUMMARY     "));
+      lcd.print(F("Y"));
       break;
-    default:
+    case SERVO_B_ANGLE_INFO:
       lcd.setCursor(0, 0);
-      lcd.print(F(" ELEVATION SUMMARY  "));
+      lcd.print(F("ROTATION ANGLE"));
+      break;
   }
 
   for(int i=0; i<3; i++) {
+    int tempIndex = 3 * (int)(lineIndex[V_MENU]/3) + i;
+
     lcd.setCursor(1, i+1);
     lcd.print(F("                   "));
+
+    if(tempIndex >= GRID_POINTS) break;
+
     lcd.setCursor(1, i+1);
-    lcd.print(i+1+offset);
+    lcd.print(tempIndex + 1);
     lcd.setCursor(3, i+1);
     if(infoIndex == SERVO_A_ANGLE_INFO) {
-      lcd.print(data[infoIndex][i+offset] * RAD_TO_DEG);
+      lcd.print(data[infoIndex][tempIndex]);
     }
     else {
-      lcd.print(data[infoIndex][i+offset]);
+      lcd.print(data[infoIndex][tempIndex]);
     }
     lcd.setCursor(17, i+1);
-    /*lcd.print(dataUnit[infoIndex]);*/
     switch(infoIndex) {
       case 1:
         lcd.print("deg");
@@ -619,7 +650,7 @@ void elevationSummaryScreen() {
 
   lcd.clear();
 
-  offset = updateCursor(START, GRID_POINTS, 5);
+  offset = updateCursor(START, GRID_POINTS, 6);
   updateElevationSummaryScreen(offset, lineIndex[H_MENU]);
 
   while(true) {
@@ -627,22 +658,18 @@ void elevationSummaryScreen() {
 
     switch(buttonsState) {
       case 0b1110: // Up
-        offset = updateCursor(UP, GRID_POINTS, 5);
+        offset = updateCursor(UP, GRID_POINTS, 6);
         updateElevationSummaryScreen(offset, lineIndex[H_MENU]);
         break;
       case 0b1101: // Down
-        offset = updateCursor(DOWN, GRID_POINTS, 5);
+        offset = updateCursor(DOWN, GRID_POINTS, 6);
         updateElevationSummaryScreen(offset, lineIndex[H_MENU]);
         break;
       case 0b1011: // Ok
-        offset = updateCursor(RIGHT, GRID_POINTS, 5);
+        offset = updateCursor(RIGHT, GRID_POINTS, 6);
         updateElevationSummaryScreen(offset, lineIndex[H_MENU]);
         break;
       case 0b0111:
-        /*if(SD.exists("data.csv")) {*/
-          /*SD.remove("data.csv");*/
-        /*}*/
-
         File elevationData = SD.open("data.csv", FILE_WRITE);
 
         if(elevationData) {
@@ -653,26 +680,34 @@ void elevationSummaryScreen() {
           delay(MINIMUM_DELAY);
 
           elevationData.println(F("***start of data***"));
+          elevationData.print(F("IH: "));
+          elevationData.println(settings[INSTRUMENT_HEIGHT]);
+          elevationData.print(F("BM: "));
+          elevationData.println(settings[BENCHMARK]);
+          elevationData.print(F("GA: "));
+          elevationData.println(settings[GRID_AREA]);
+          elevationData.print(F("SP: "));
+          elevationData.println(settings[SAMPLES]);
 
           for(int i=0; i<INFO_NUMBER; i++) {
             switch(i) {
               case ELEVATION_INFO:
-                elevationData.print(F("Elevation Info (mm), "));
+                elevationData.print(F("Elevation (mm), "));
                 break;
               case SERVO_A_ANGLE_INFO:
-                elevationData.print(F("Servo A Angle Info (rad), "));
+                elevationData.print(F("ServoA Angle (deg), "));
                 break;
               case DISTANCE_INFO:
-                elevationData.print(F("Distance Info (mm), "));
+                elevationData.print(F("Distance (mm), "));
                 break;
               case X_INFO:
-                elevationData.print(F("X Info (mm), "));
+                elevationData.print(F("X (mm), "));
                 break;
               case Y_INFO:
-                elevationData.print(F("Y Info (mm), "));
+                elevationData.print(F("Y (mm), "));
                 break;
               case SERVO_B_ANGLE_INFO:
-                elevationData.print(F("Servo B Angle Info (rad)"));
+                elevationData.print(F("ServoB Angle (deg)"));
                 break;
             }
           }
@@ -765,195 +800,201 @@ int updateCursor(const int dir, int numberOfOptionsLeft, int numberOfOptionsRigh
 
 }
 
-void manualControlServo() {
-  double angle;
-  double dutyCycle;
+/*void manualControlServo() {*/
+  /*double angle;*/
+  /*double dutyCycle;*/
 
-  switch(lineIndex[V_MENU]) {
-    case SERVO_A_MANUAL:
-      angle = manualControlServoAngles[SERVO_A_MANUAL];
-      dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);
-      servoA.writeMicroseconds(dutyCycle);
-      break;
-    case SERVO_B_MANUAL:
-      angle = manualControlServoAngles[SERVO_B_MANUAL];
-      dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);
-      servoB.writeMicroseconds(dutyCycle);
-      break;
-  }
-  lcd.setCursor(0, 3);
-  lcd.print(F("Distance (mm): "));
-  lcd.setCursor(15, 3);
-  lcd.print(measureDistance());
-}
+  /*switch(lineIndex[V_MENU]) {*/
+    /*case SERVO_A_MANUAL:*/
+      /*angle = manualControlServoAngles[SERVO_A_MANUAL];*/
+      /*dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_A_0], servoDutyCycles[SERVO_A_90]);*/
+      /*servoA.writeMicroseconds(dutyCycle);*/
+      /*break;*/
+    /*case SERVO_B_MANUAL:*/
+      /*angle = manualControlServoAngles[SERVO_B_MANUAL];*/
+      /*dutyCycle = map(angle, 0, 90, servoDutyCycles[SERVO_B_0], servoDutyCycles[SERVO_B_90]);*/
+      /*servoB.writeMicroseconds(dutyCycle);*/
+      /*break;*/
+  /*}*/
+  /*lcd.setCursor(0, 3);*/
+  /*lcd.print(F("Distance (mm): "));*/
+  /*lcd.setCursor(15, 3);*/
+  /*lcd.print(measureDistance());*/
+/*}*/
 
-void updateManualControlScreen(int offset) {
-  lcd.setCursor(0, 0);
-  lcd.print(F("Manual Control"));
+/*void updateManualControlScreen(int offset) {*/
+  /*lcd.setCursor(0, 0);*/
+  /*lcd.print(F("Manual Control"));*/
 
-  lcd.setCursor(1, 1);
-  lcd.print(F("Servo A"));
+  /*lcd.setCursor(1, 1);*/
+  /*lcd.print(F("ServoA"));*/
 
-  lcd.setCursor(1, 2);
-  lcd.print(F("Servo B"));
-}
+  /*lcd.setCursor(1, 2);*/
+  /*lcd.print(F("ServoB"));*/
+/*}*/
 
-void manualControlScreen() {
-  int offset = 0;
-  int increment = 1;
+/*void manualControlScreen() {*/
+  /*int offset = 0;*/
+  /*int increment = 1;*/
 
-  lcd.clear();
+  /*lcd.clear();*/
 
-  offset = updateCursor(START, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);
-  updateManualControlScreen(offset);
+  /*offset = updateCursor(START, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);*/
+  /*updateManualControlScreen(offset);*/
 
-  while(true) {
-    int buttonsState = checkButtons();
+  /*while(true) {*/
+    /*int buttonsState = checkButtons();*/
 
-    switch(buttonsState) {
-      case 0b1110: // Up
-        if(lineIndex[H_MENU] == 0) {
-          offset = updateCursor(UP, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);
-          updateManualControlScreen(offset);
-        }
-        else {
-          manualControlServoAngles[lineIndex[V_MENU]] -= increment;
+    /*switch(buttonsState) {*/
+      /*case 0b1110: // Up*/
+        /*if(lineIndex[H_MENU] == 0) {*/
+          /*offset = updateCursor(UP, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);*/
+          /*updateManualControlScreen(offset);*/
+        /*}*/
+        /*else {*/
+          /*manualControlServoAngles[lineIndex[V_MENU]] -= increment;*/
 
-          if(manualControlServoAngles[lineIndex[V_MENU]] > 90) {
-            manualControlServoAngles[lineIndex[V_MENU]] = 90;
-          }
+          /*if(manualControlServoAngles[lineIndex[V_MENU]] > 90) {*/
+            /*manualControlServoAngles[lineIndex[V_MENU]] = 90;*/
+          /*}*/
 
-          if(offset > 0) {
-            lcd.setCursor(1, 3);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, 3);
-            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, 3);
-            lcd.print(F("deg"));
-          }
-          else {
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, lineIndex[V_MENU]+1);
-            lcd.print(F("deg"));
-          }
+          /*if(offset > 0) {*/
+            /*lcd.setCursor(1, 3);*/
+            /*lcd.print(F("                   "));*/
+            /*lcd.setCursor(1, 3);*/
+            /*lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);*/
+            /*lcd.setCursor(17, 3);*/
+            /*lcd.print(F("deg"));*/
+          /*}*/
+          /*else {*/
+            /*lcd.setCursor(1, lineIndex[V_MENU]+1);*/
+            /*lcd.print(F("                   "));*/
+            /*lcd.setCursor(1, lineIndex[V_MENU]+1);*/
+            /*lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);*/
+            /*lcd.setCursor(17, lineIndex[V_MENU]+1);*/
+            /*lcd.print(F("deg"));*/
+          /*}*/
 
-          manualControlServo();
+          /*manualControlServo();*/
 
-        }
-        delay(MINIMUM_DELAY);
-        break;
-      case 0b1101: // Down
-        if(lineIndex[H_MENU] == 0) {
-          offset = updateCursor(DOWN, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);
-          updateManualControlScreen(offset);
-        }
-        else {
-          manualControlServoAngles[lineIndex[V_MENU]] += increment;
+        /*}*/
+        /*delay(MINIMUM_DELAY);*/
+        /*break;*/
+      /*case 0b1101: // Down*/
+        /*if(lineIndex[H_MENU] == 0) {*/
+          /*offset = updateCursor(DOWN, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);*/
+          /*updateManualControlScreen(offset);*/
+        /*}*/
+        /*else {*/
+          /*manualControlServoAngles[lineIndex[V_MENU]] += increment;*/
 
-          if(manualControlServoAngles[lineIndex[V_MENU]] < 0) {
-            manualControlServoAngles[lineIndex[V_MENU]] = 0;
-          }
+          /*if(manualControlServoAngles[lineIndex[V_MENU]] < 0) {*/
+            /*manualControlServoAngles[lineIndex[V_MENU]] = 0;*/
+          /*}*/
 
-          if(offset > 0) {
-            lcd.setCursor(1, 3);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, 3);
-            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, 3);
-            lcd.print(F("deg"));
-          }
-          else {
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(F("                   "));
-            lcd.setCursor(1, lineIndex[V_MENU]+1);
-            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, lineIndex[V_MENU]+1);
-            lcd.print(F("deg"));
-          }
+          /*if(offset > 0) {*/
+            /*lcd.setCursor(1, 3);*/
+            /*lcd.print(F("                   "));*/
+            /*lcd.setCursor(1, 3);*/
+            /*lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);*/
+            /*lcd.setCursor(17, 3);*/
+            /*lcd.print(F("deg"));*/
+          /*}*/
+          /*else {*/
+            /*lcd.setCursor(1, lineIndex[V_MENU]+1);*/
+            /*lcd.print(F("                   "));*/
+            /*lcd.setCursor(1, lineIndex[V_MENU]+1);*/
+            /*lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);*/
+            /*lcd.setCursor(17, lineIndex[V_MENU]+1);*/
+            /*lcd.print(F("deg"));*/
+          /*}*/
 
-          manualControlServo();
+          /*manualControlServo();*/
 
-        }
-        delay(MINIMUM_DELAY);
-        break;
-      case 0b1011: // Ok
-        offset = updateCursor(RIGHT, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);
+        /*}*/
+        /*delay(MINIMUM_DELAY);*/
+        /*break;*/
+      /*case 0b1011: // Ok*/
+        /*offset = updateCursor(RIGHT, MANUAL_CONTROL_SCREEN_DISPLAY_NUMBER, 2);*/
 
-        if(offset > 0) {
-          lcd.setCursor(1, 3);
-          lcd.print(F("                   "));
-          lcd.setCursor(1, 3);
+        /*if(offset > 0) {*/
+          /*lcd.setCursor(1, 3);*/
+          /*lcd.print(F("                   "));*/
+          /*lcd.setCursor(1, 3);*/
 
-          if(lineIndex[H_MENU] == 0) {
-            /*lcd.print(manualControlScreenDisplay[lineIndex[V_MENU]]);*/
-            if(lineIndex[V_MENU] == 0) {
-              lcd.print(F("Servo A"));
-            }
-            else {
-              lcd.print(F("Servo B"));
-            }
-          }
-          else {
-            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, 3);
-            lcd.print(F("deg"));
-            manualControlServo();
-          }
-        }
-        else {
-          lcd.setCursor(1, lineIndex[V_MENU]+1);
-          lcd.print(F("                   "));
-          lcd.setCursor(1, lineIndex[V_MENU]+1);
+          /*if(lineIndex[H_MENU] == 0) {*/
+            /*[>lcd.print(manualControlScreenDisplay[lineIndex[V_MENU]]);<]*/
+            /*if(lineIndex[V_MENU] == 0) {*/
+              /*lcd.print(F("ServoA"));*/
+            /*}*/
+            /*else {*/
+              /*lcd.print(F("ServoB"));*/
+            /*}*/
+          /*}*/
+          /*else {*/
+            /*lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);*/
+            /*lcd.setCursor(17, 3);*/
+            /*lcd.print(F("deg"));*/
+            /*manualControlServo();*/
+          /*}*/
+        /*}*/
+        /*else {*/
+          /*lcd.setCursor(1, lineIndex[V_MENU]+1);*/
+          /*lcd.print(F("                   "));*/
+          /*lcd.setCursor(1, lineIndex[V_MENU]+1);*/
 
-          if(lineIndex[H_MENU] == 0) {
-            /*lcd.print(manualControlScreenDisplay[lineIndex[V_MENU]]);*/
-            if(lineIndex[V_MENU] == 0) {
-              lcd.print(F("Servo A"));
-            }
-            else {
-              lcd.print(F("Servo B"));
-            }
-          }
-          else {
-            lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);
-            lcd.setCursor(17, lineIndex[V_MENU]+1);
-            lcd.print(F("deg"));
-            manualControlServo();
-          }
-        }
+          /*if(lineIndex[H_MENU] == 0) {*/
+            /*[>lcd.print(manualControlScreenDisplay[lineIndex[V_MENU]]);<]*/
+            /*if(lineIndex[V_MENU] == 0) {*/
+              /*lcd.print(F("ServoA"));*/
+            /*}*/
+            /*else {*/
+              /*lcd.print(F("ServoB"));*/
+            /*}*/
+          /*}*/
+          /*else {*/
+            /*lcd.print(manualControlServoAngles[lineIndex[V_MENU]]);*/
+            /*lcd.setCursor(17, lineIndex[V_MENU]+1);*/
+            /*lcd.print(F("deg"));*/
+            /*manualControlServo();*/
+          /*}*/
+        /*}*/
 
-        delay(MINIMUM_DELAY);
+        /*delay(MINIMUM_DELAY);*/
 
-        break;
-      case 0b0111: // NA
-        if(lineIndex[H_MENU] == 0) {
-          return;
-        }
-        else {
-          increment *= 10;
-          if(increment == 100) increment = 1;
-          delay(MINIMUM_DELAY);
-        }
-        break;
-      default:
-        break;
-    }
-  }
-}
+        /*break;*/
+      /*case 0b0111: // NA*/
+        /*if(lineIndex[H_MENU] == 0) {*/
+          /*return;*/
+        /*}*/
+        /*else {*/
+          /*increment *= 10;*/
+          /*if(increment == 100) increment = 1;*/
+          /*delay(MINIMUM_DELAY);*/
+        /*}*/
+        /*break;*/
+      /*default:*/
+        /*break;*/
+    /*}*/
+  /*}*/
+/*}*/
 
 void calibrateServo() {
   switch(lineIndex[V_MENU]) {
     case SERVO_A_0:
       servoA.writeMicroseconds(servoDutyCycles[SERVO_A_0]);
       break;
+    case SERVO_A_45:
+      servoA.writeMicroseconds(servoDutyCycles[SERVO_A_45]);
+      break;
     case SERVO_A_90:
       servoA.writeMicroseconds(servoDutyCycles[SERVO_A_90]);
       break;
     case SERVO_B_0:
       servoB.writeMicroseconds(servoDutyCycles[SERVO_B_0]);
+      break;
+    case SERVO_B_45:
+      servoB.writeMicroseconds(servoDutyCycles[SERVO_B_45]);
       break;
     case SERVO_B_90:
       servoB.writeMicroseconds(servoDutyCycles[SERVO_B_90]);
@@ -967,15 +1008,19 @@ void updateCalibrateScreen(int offset) {
 
   if(offset == 0) {
     lcd.setCursor(1, 1);
-    lcd.print(F("Servo A -  0 deg"));
+    lcd.print(F("ServoA -  0"));
     lcd.setCursor(1, 2);
-    lcd.print(F("Servo A - 90 deg"));
+    lcd.print(F("ServoA - 45"));
     lcd.setCursor(1, 3);
-    lcd.print(F("Servo B -  0 deg"));
+    lcd.print(F("ServoA - 90"));
   }
   else {
     lcd.setCursor(1, 1);
-    lcd.print(F("Servo B - 90 deg"));
+    lcd.print(F("ServoB -  0"));
+    lcd.setCursor(1, 2);
+    lcd.print(F("ServoB - 45"));
+    lcd.setCursor(1, 3);
+    lcd.print(F("ServoB - 90"));
   }
 }
 
@@ -1051,6 +1096,11 @@ void calibrateScreen() {
           entry.print(servoDutyCycles[SERVO_A_0]);
           entry.close();
 
+          if(SD.exists("sa45")) SD.remove("sa45");
+          entry = SD.open("sa45", FILE_WRITE);
+          entry.print(servoDutyCycles[SERVO_A_45]);
+          entry.close();
+
           if(SD.exists("sa90")) SD.remove("sa90");
           entry = SD.open("sa90", FILE_WRITE);
           entry.print(servoDutyCycles[SERVO_A_90]);
@@ -1059,6 +1109,11 @@ void calibrateScreen() {
           if(SD.exists("sb0")) SD.remove("sb0");
           entry = SD.open("sb0", FILE_WRITE);
           entry.print(servoDutyCycles[SERVO_B_0]);
+          entry.close();
+
+          if(SD.exists("sb45")) SD.remove("sb45");
+          entry = SD.open("sb45", FILE_WRITE);
+          entry.print(servoDutyCycles[SERVO_B_45]);
           entry.close();
 
           if(SD.exists("sb90")) SD.remove("sb90");
@@ -1145,14 +1200,14 @@ void settingsScreen() {
           updateSettingsScreen(offset);
         }
         else {
-          variables[lineIndex[V_MENU]] -= increment;
+          settings[lineIndex[V_MENU]] -= increment;
 
           int tempIndex = (lineIndex[V_MENU] % 3) + 1;
 
           lcd.setCursor(1, tempIndex);
           lcd.print(F("                   "));
           lcd.setCursor(1, tempIndex);
-          lcd.print(variables[lineIndex[V_MENU]]);
+          lcd.print(settings[lineIndex[V_MENU]]);
           lcd.setCursor(17, tempIndex);
           switch(lineIndex[V_MENU]) {
             case 3:
@@ -1171,14 +1226,14 @@ void settingsScreen() {
           updateSettingsScreen(offset);
         }
         else {
-          variables[lineIndex[V_MENU]] += increment;
+          settings[lineIndex[V_MENU]] += increment;
 
           int tempIndex = (lineIndex[V_MENU] % 3) + 1;
 
           lcd.setCursor(1, tempIndex);
           lcd.print(F("                   "));
           lcd.setCursor(1, tempIndex);
-          lcd.print(variables[lineIndex[V_MENU]]);
+          lcd.print(settings[lineIndex[V_MENU]]);
           lcd.setCursor(17, tempIndex);
           switch(lineIndex[V_MENU]) {
             case 3:
@@ -1201,22 +1256,22 @@ void settingsScreen() {
 
           if(SD.exists("ih")) SD.remove("ih");
           entry = SD.open("ih", FILE_WRITE);
-          entry.print(variables[INSTRUMENT_HEIGHT]);
+          entry.print(settings[INSTRUMENT_HEIGHT]);
           entry.close();
 
           if(SD.exists("bm")) SD.remove("bm");
           entry = SD.open("bm", FILE_WRITE);
-          entry.print(variables[BENCHMARK]);
+          entry.print(settings[BENCHMARK]);
           entry.close();
 
           if(SD.exists("ga")) SD.remove("ga");
           entry = SD.open("ga", FILE_WRITE);
-          entry.print(variables[GRID_AREA]);
+          entry.print(settings[GRID_AREA]);
           entry.close();
 
           if(SD.exists("sp")) SD.remove("sp");
           entry = SD.open("sp", FILE_WRITE);
-          entry.print(variables[SAMPLES]);
+          entry.print(settings[SAMPLES]);
           entry.close();
 
           lcd.clear();
@@ -1246,7 +1301,7 @@ void settingsScreen() {
           updateSettingsScreen(offset);
         }
         else {
-          lcd.print(variables[lineIndex[V_MENU]]);
+          lcd.print(settings[lineIndex[V_MENU]]);
           lcd.setCursor(17, tempIndex);
           switch(lineIndex[V_MENU]) {
             case 3:
@@ -1273,7 +1328,7 @@ int checkButtons() {
 int measureDistance() {
   int distance = 0;
 
-  for(int i=0; i<variables[SAMPLES]; i++) {
+  for(int i=0; i<settings[SAMPLES]; i++) {
     distanceSensor.startRanging(); //Write configuration bytes to initiate measurement
     for(int j=0; j<10; j++) {
       if(distanceSensor.checkForDataReady()) break;
@@ -1300,33 +1355,33 @@ int measureDistance() {
     distanceSensor.stopRanging();
   }
 
-  return distance/variables[SAMPLES];
+  return distance/settings[SAMPLES];
 }
 
 void calculateGridPoints() {
-  data[X_INFO][0] = 0.5 * variables[GRID_AREA];
-  data[X_INFO][1] = variables[GRID_AREA];
-  data[X_INFO][2] = sqrt(1.25) * variables[GRID_AREA]; // * variables[GRID_AREA] * variables[GRID_AREA]);
-  data[X_INFO][3] = sqrt(0.5) * variables[GRID_AREA]; //  * variables[GRID_AREA] * variables[GRID_AREA]);
-  data[X_INFO][4] = sqrt(2) * variables[GRID_AREA]; //    * variables[GRID_AREA] * variables[GRID_AREA]);
-  data[X_INFO][5] = sqrt(1.25) * variables[GRID_AREA]; // * variables[GRID_AREA] * variables[GRID_AREA]);
-  data[X_INFO][6] = 0.5 * variables[GRID_AREA];
-  data[X_INFO][7] = variables[GRID_AREA];
+  data[X_INFO][0] = 0.5 * settings[GRID_AREA];
+  data[X_INFO][1] = settings[GRID_AREA];
+  data[X_INFO][2] = sqrt(1.25) * settings[GRID_AREA]; // * settings[GRID_AREA] * settings[GRID_AREA]);
+  data[X_INFO][3] = sqrt(0.5) * settings[GRID_AREA]; //  * settings[GRID_AREA] * settings[GRID_AREA]);
+  data[X_INFO][4] = sqrt(2) * settings[GRID_AREA]; //    * settings[GRID_AREA] * settings[GRID_AREA]);
+  data[X_INFO][5] = sqrt(1.25) * settings[GRID_AREA]; // * settings[GRID_AREA] * settings[GRID_AREA]);
+  data[X_INFO][6] = 0.5 * settings[GRID_AREA];
+  data[X_INFO][7] = settings[GRID_AREA];
 
   for(int i=0; i<GRID_POINTS; i++) {
-    data[SERVO_A_ANGLE_INFO][i] = atan2(variables[INSTRUMENT_HEIGHT], data[X_INFO][i]);
+    data[SERVO_A_ANGLE_INFO][i] = atan2(settings[INSTRUMENT_HEIGHT], data[X_INFO][i]) * RAD_TO_DEG;
   }
 
-  double alpha = atan2(0.5 * variables[GRID_AREA], variables[GRID_AREA]);
-  double beta = atan2(variables[GRID_AREA], variables[GRID_AREA]);
+  double alpha = atan2(0.5 * settings[GRID_AREA], settings[GRID_AREA]);
+  double beta = atan2(settings[GRID_AREA], settings[GRID_AREA]);
   double gamma = HALF_PI - alpha - beta;
 
   data[SERVO_B_ANGLE_INFO][0] = 0; // 0.5 * HALF_PI;
   data[SERVO_B_ANGLE_INFO][1] = 0; // 0.5 * HALF_PI;
-  data[SERVO_B_ANGLE_INFO][2] = 0.5 * HALF_PI - gamma; // HALF_PI - gamma;
-  data[SERVO_B_ANGLE_INFO][3] = 0.5 * HALF_PI; // HALF_PI;
-  data[SERVO_B_ANGLE_INFO][4] = 0.5 * HALF_PI; // HALF_PI;
-  data[SERVO_B_ANGLE_INFO][5] = 0.5 * HALF_PI + gamma; // HALF_PI + gamma;
-  data[SERVO_B_ANGLE_INFO][6] = HALF_PI; // 1.5 * HALF_PI;
-  data[SERVO_B_ANGLE_INFO][7] = HALF_PI; // 1.5 * HALF_PI;
+  data[SERVO_B_ANGLE_INFO][2] = (0.5 * HALF_PI - gamma) * RAD_TO_DEG; // HALF_PI - gamma;
+  data[SERVO_B_ANGLE_INFO][3] = 45; // 0.5 * HALF_PI; // HALF_PI;
+  data[SERVO_B_ANGLE_INFO][4] = 45; // 0.5 * HALF_PI; // HALF_PI;
+  data[SERVO_B_ANGLE_INFO][5] = (0.5 * HALF_PI + gamma) * RAD_TO_DEG; // HALF_PI + gamma;
+  data[SERVO_B_ANGLE_INFO][6] = 90; // HALF_PI; // 1.5 * HALF_PI;
+  data[SERVO_B_ANGLE_INFO][7] = 90; // HALF_PI; // 1.5 * HALF_PI;
 }
